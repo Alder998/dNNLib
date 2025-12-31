@@ -9,13 +9,16 @@ class ModelTraining:
 
     def trainModel (self, train_set, train_labels, epochs, batch_size, validation_split):
 
-        # 0. Compile the model
+        # 0. Make pandas dataFrame array, to be used for training
+
+
+        # 1. Compile the model
         self.model.compile(optimizer='adam',
                            loss=tf.keras.losses.MeanSquaredError(),
                            metrics=['mse'])
 
-        # 1. Train
+        # 2. Train
         self.model.fit(train_set, train_labels, epochs=epochs, batch_size=batch_size, validation_split=validation_split)
 
-        # 2. Return for Evaluation
+        # 3. Return for Evaluation
         return self.model
