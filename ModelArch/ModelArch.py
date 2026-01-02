@@ -1,5 +1,4 @@
 """Class to create the Model Architecture according user params"""
-
 import tensorflow as tf
 
 class ModelArch:
@@ -33,3 +32,61 @@ class ModelArch:
             self.createFeedForwardNN(model, dropout_FF=dropout_FF)
 
         return model
+
+    # Super-generalized function to have a Regression Model
+    def createRegressionModelArchitecture(self, dropout_FF=None):
+
+        # Logging
+        print("INFO - MODEL ARCHITECTURE: creating model Architecture for regression...")
+        modelInfo = {}
+        model = self.createModelArchitecture(dropout_FF=dropout_FF)
+        model.add(tf.keras.layers.Dense(1, activation='linear'))
+        modelInfo["model"] = model
+
+        # Add the typical loss used for regression problems (MSE)
+        loss = tf.keras.losses.MeanSquaredError()
+        modelInfo["loss"] = loss
+
+        # Add the structure (functional to vectorize the dataset)
+        modelInfo["modelStructure"] = self.modelStructure
+
+        return modelInfo
+
+    # Super-generalized function to have a Classification Model
+    def create2ClassificationModelArchitecture(self, dropout_FF=None):
+
+        # Logging
+        print("INFO - MODEL ARCHITECTURE: creating model Architecture for 2-class classification...")
+        modelInfo = {}
+        model = self.createModelArchitecture(dropout_FF=dropout_FF)
+        model.add(tf.keras.layers.Dense(1, activation='sigmoid'))
+        modelInfo["model"] = model
+
+        # Add the typical loss used for 2-class problems (binary cross-loss entropy)
+        loss = tf.keras.losses.BinaryCrossentropy()
+        modelInfo["loss"] = loss
+
+        # Add the structure (functional to vectorize the dataset)
+        modelInfo["modelStructure"] = self.modelStructure
+
+        return modelInfo
+
+    # Super-generalized function to have a multi-Classification Model
+    def createMultiClassificationModelArchitecture(self, classes, dropout_FF=None):
+
+        # Logging
+        print("INFO - MODEL ARCHITECTURE: creating model Architecture for multi-class classification...")
+        modelInfo = {}
+        model = self.createModelArchitecture(dropout_FF=dropout_FF)
+        model.add(tf.keras.layers.Dense(units=classes, activation='softmax'))
+        modelInfo["model"] = model
+
+        # Add the typical loss used for multi-class problems (sparse categorical loss entropy)
+        loss = tf.keras.losses.SparseCategoricalCrossentropy()
+        modelInfo["loss"] = loss
+
+        # Add the structure (functional to vectorize the dataset)
+        modelInfo["modelStructure"] = self.modelStructure
+
+        return modelInfo
+
