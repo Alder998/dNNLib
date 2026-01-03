@@ -7,7 +7,8 @@ class ModelArch:
         self.modelStructure = modelStructure
         pass
 
-    def createFeedForwardNN(self, model, dropout_FF=None):
+    # Function to create and add to model FF layers
+    def createFeedForwardLayer(self, model, dropout_FF=None):
 
         # 1. Iterate for the FF layers specified by the user
         for l in range(len(self.modelStructure['FF'])):
@@ -22,14 +23,30 @@ class ModelArch:
 
         return model
 
+    # Function to create and add to model LSTM layers
+    def createRecurrentLayer(self, model):
+
+        # 1. Iterate for the FF layers specified by the user
+        for l in range(len(self.modelStructure['LSTM'])):
+            # 1.1. extract the LSTM units and the nodes for each one of the layer
+            unitsLSTM = self.modelStructure['LSTM'][l]
+            layerLSTM = tf.keras.layers.LSTM(unitsLSTM, activation='tanh', return_sequences=True)
+            # 1.3. Finally, add the FF layer to the model
+            model.add(layerLSTM)
+
+        return model
+
+
     # Generalized method to create a Model with custom layers
     def createModelArchitecture(self, dropout_FF=None):
 
         # 0. Initialize tf model object
         model = tf.keras.Sequential()
 
-        if self.modelStructure["FF"]:
-            self.createFeedForwardNN(model, dropout_FF=dropout_FF)
+        if "FF" in self.modelStructure.keys():
+            self.createFeedForwardLayer(model, dropout_FF=dropout_FF)
+        if "LSTM" in self.modelStructure.keys():
+            self.createRecurrentLayer(model)
 
         return model
 

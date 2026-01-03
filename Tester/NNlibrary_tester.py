@@ -1,23 +1,63 @@
 """Simple tester"""
-
-import numpy as np
 import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
 from ModelArch import ModelArch as arch
 from ModelTraining import ModelTraining as train
 from ModelEvaluation import ModelEvaluation as eval
 
-# 0.0. Creation of a stupid DataFrame of random data
-random_dataset = pd.DataFrame(np.random.normal(size=(10000, 15))).set_axis([str(i) for i in np.arange(1, 16)],axis=1)
+# 0.0. get some data (2025 renewable production in Italy)
+dataset = pd.read_excel(r"C:\\Users\\alder\\Downloads\\Export-DownloadCenterFile-20260102-154858.xlsx")
+# 0.1. Clean data
+ren_prod_italy = []   # 'Wind', 'Geothermal', 'Hydro', 'Photovoltaic', 'Biomass'
+for category in dataset["Energy Source"].unique():
+    dfc = dataset[["Date","Renewable Generation"]][dataset["Energy Source"] == category].reset_index(drop=True)
+    dfc = dfc.rename(columns={"Renewable Generation":category})
+    ren_prod_italy.append(dfc.set_index("Date"))
+ren_prod_italy = pd.concat([df for df in ren_prod_italy], axis=1)
+ren_prod_italy["year"] = ren_prod_italy.index.year
+ren_prod_italy["month"] = ren_prod_italy.index.month
+ren_prod_italy["day"] = ren_prod_italy.index.day
+ren_prod_italy["hour"] = ren_prod_italy.index.hour
+ren_prod_italy["minute"] = ren_prod_italy.index.minute
 
 # 0. Build the model
-model = arch.ModelArch(modelStructure={'FF': [500, 500]}).createRegressionModelArchitecture(dropout_FF=None)
+model = arch.ModelArch(modelStructure={"LSTM": [64, 64], "FF": [500, 500, 500, 500]}).createRegressionModelArchitecture(dropout_FF=0.1)
 
 # 1. Compile and train
-trained_model = train.ModelTraining(model=model).trainModel(dataInDataFrameFormat=random_dataset,
-                                                            feature_variables=["1", "2", "3", "12"],
-                                                            target_variables="15",
+trained_model = train.ModelTraining(model=model).trainModel(dataInDataFrameFormat=ren_prod_italy,
+                                                            feature_variables=["year", "month", "day", "hour", "minute"],
+                                                            target_variables="Photovoltaic",
+                                                            split_method="time-series",
+                                                            time_window=1,
                                                             test_size=0.30,
-                                                            batch_size=4, validation_split=0.2, epochs=10)
+                                                            batch_size=4, validation_split=0.2, epochs=15)
 
 # 2. Evaluate the model
 evaluation = eval.ModelEvaluation(model=trained_model).evaluateModelPerformance()
+
+# 3. Predict
+future_dataframe = pd.DataFrame(pd.date_range(start=ren_prod_italy.index.max(), periods=200, freq="D")).set_axis(["Date"], axis=1)
+future_dataframe["year"] = future_dataframe["Date"].dt.year
+future_dataframe["month"] = future_dataframe["Date"].dt.month
+future_dataframe["day"] = future_dataframe["Date"].dt.day
+future_dataframe["hour"] = future_dataframe["Date"].dt.hour
+future_dataframe["minute"] = future_dataframe["Date"].dt.minute
+
+input_data = np.array(future_dataframe[["year", "month", "day", "hour", "minute"]])
+time_window = 1
+batch_size_LSTM = int(input_data.shape[0] / time_window)
+fabt = []
+for i in range(batch_size_LSTM):
+    fab = input_data[time_window * i: time_window * (i + 1), :]
+    fabt.append(fab)
+input_data = np.stack(fabt, axis=0)
+
+prediction = trained_model["model"].predict(input_data)
+prediction = pd.DataFrame(np.squeeze(prediction, axis=1)).set_axis(["Photovoltaic"], axis=1).set_index(future_dataframe["Date"])
+
+# 4. Plot the prediction
+plt.figure(figsize = (15, 5))
+plt.plot(ren_prod_italy["Photovoltaic"])
+plt.plot(prediction["Photovoltaic"], color="red", linestyle="dashed")
+plt.show()
