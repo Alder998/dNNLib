@@ -28,6 +28,9 @@ class ModelTraining:
         # 3. Add test set and test labels to the model object
         modelTrainingInfo["test_set"] = features_test
         modelTrainingInfo["test_labels"] = target_test
+        modelTrainingInfo["time_window"] = time_window
+        modelTrainingInfo["var_to_predict"] = target_variables
+        modelTrainingInfo["params"] = feature_variables
 
         # 4. Return for Evaluation
         return modelTrainingInfo
