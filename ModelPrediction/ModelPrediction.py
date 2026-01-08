@@ -8,7 +8,7 @@ class ModelPrediction:
         self.model = model
         pass
 
-    def predictTimeSeriesWithTrainedModel (self, dataInDataFrameFormat, frequency, date_column="index"):
+    def predictTimeSeriesWithTrainedModel (self, dataInDataFrameFormat, steps_ahead, frequency, date_column="index"):
 
         # 0. Create the future DataFrame
         if date_column == "index":
@@ -38,8 +38,15 @@ class ModelPrediction:
             fabt.append(fab)
         input_data = np.stack(fabt, axis=0)
 
-        # 4. Predict with stored data
-        prediction = self.model["model"].predict(input_data)
-        prediction_dataFrame = pd.DataFrame(np.squeeze(prediction, axis=0)).set_axis([self.model["var_to_predict"]], axis=1).set_index(future_dataframe["Date"])
+        # 3.1. Enable the model to predict a given number of steps ahead
+        if steps_ahead < self.model["time_window"]:
+            # 4. Predict with stored data
+            prediction = self.model["model"].predict(input_data)
+            prediction_dataFrame = pd.DataFrame(np.squeeze(prediction, axis=0)).set_axis([self.model["var_to_predict"]],axis=1).set_index(future_dataframe["Date"])
+            prediction_dataFrame = prediction_dataFrame[0:steps_ahead]
+        elif steps_ahead == self.model["time_window"]:
+            # 4. Predict with stored data
+            prediction = self.model["model"].predict(input_data)
+            prediction_dataFrame = pd.DataFrame(np.squeeze(prediction, axis=0)).set_axis([self.model["var_to_predict"]],axis=1).set_index(future_dataframe["Date"])
 
         return prediction_dataFrame

@@ -9,7 +9,7 @@ from ModelPrediction import ModelPrediction as pred
 # 0.0. get some data (2025 15 min-power production in Italy)
 ren_prod_italy = data.Dataset().getItalyEnergyProductionDataset()
 # 0.1. Set the params
-time_window = 96
+time_window = 96  # 48: 0.5 days | 96: 1 day | 192 : 2 days | 288: 3 days | 480: 5 days | 960: 10 days
 var_to_predict = "Photovoltaic"  # 'Wind', 'Geothermal', 'Hydro', 'Photovoltaic', 'Biomass', 'Thermal', 'Self-consumption'
 
 # 0. Build the model
@@ -22,14 +22,18 @@ trained_model = train.ModelTraining(model=model).trainModel(dataInDataFrameForma
                                                             split_method="time-series",
                                                             time_window=time_window,
                                                             test_size=0.30,
-                                                            batch_size=32, validation_split=0.2, epochs=30)
+                                                            batch_size=32,
+                                                            validation_split=0.2,
+                                                            epochs=15)
 
 # 2. Evaluate the model
 evaluation = eval.ModelEvaluation(model=trained_model).evaluateModelPerformance()
 
 # 3. Predict
 prediction_dataset = pred.ModelPrediction(model=trained_model).predictTimeSeriesWithTrainedModel(dataInDataFrameFormat=ren_prod_italy,
-                                                                                                 frequency="15min", date_column="index")
+                                                                                                 steps_ahead=96,
+                                                                                                 frequency="15min",
+                                                                                                 date_column="index")
 
 # 4. Plot the prediction
 plt.figure(figsize = (15, 5))
