@@ -8,9 +8,9 @@ class ModelPrediction:
         self.model = model
         pass
 
-    def predictTimeSeriesWithTrainedModel (self, dataInDataFrameFormat, steps_ahead, frequency, date_column="index"):
+    # Function to create the steps-ahead dataFrame
+    def createFutureDataFrame(self, dataInDataFrameFormat, date_column, frequency):
 
-        # 0. Create the future DataFrame
         if date_column == "index":
             date_idx = dataInDataFrameFormat.index
         else:
@@ -29,6 +29,9 @@ class ModelPrediction:
         if "minute" in self.model["params"]:
             future_dataframe["minute"] = future_dataframe["Date"].dt.minute
 
+        # 2. Drop Duplicated columns to allow re-creation
+        future_dataframe = future_dataframe.loc[:, ~future_dataframe.columns.duplicated()]
+
         # 3. Process the future dataframe with the batch size
         input_data = np.array(future_dataframe[self.model["params"]])
         batch_size_LSTM = int(input_data.shape[0] / self.model["time_window"])
@@ -38,15 +41,41 @@ class ModelPrediction:
             fabt.append(fab)
         input_data = np.stack(fabt, axis=0)
 
-        # 3.1. Enable the model to predict a given number of steps ahead
+        return future_dataframe, input_data
+
+    def predictTimeSeriesWithTrainedModel (self, dataInDataFrameFormat, steps_ahead, frequency, date_column="index"):
+
+        # 0. Create the future DataFrame
+        future_dataframe, input_data = self.createFutureDataFrame(dataInDataFrameFormat=dataInDataFrameFormat,
+                                                                  date_column=date_column,
+                                                                  frequency=frequency)
+        # 1. Enable the model to predict a given number of steps ahead
         if steps_ahead < self.model["time_window"]:
-            # 4. Predict with stored data
+            # 2. Predict with stored data
             prediction = self.model["model"].predict(input_data)
             prediction_dataFrame = pd.DataFrame(np.squeeze(prediction, axis=0)).set_axis([self.model["var_to_predict"]],axis=1).set_index(future_dataframe["Date"])
             prediction_dataFrame = prediction_dataFrame[0:steps_ahead]
         elif steps_ahead == self.model["time_window"]:
-            # 4. Predict with stored data
+            # 2. Predict with stored data
             prediction = self.model["model"].predict(input_data)
             prediction_dataFrame = pd.DataFrame(np.squeeze(prediction, axis=0)).set_axis([self.model["var_to_predict"]],axis=1).set_index(future_dataframe["Date"])
+        elif steps_ahead > self.model["time_window"]:
+            full_chuncks = int(steps_ahead / self.model["time_window"]) if steps_ahead % self.model["time_window"] == 0 else int(steps_ahead / self.model["time_window"]) + 1
+            steps_remaining = steps_ahead % self.model["time_window"]
+            full_predictions = []
+            for chunk in range(full_chuncks):
+                prediction = self.model["model"].predict(input_data)
+                # 2.1. Update Input data
+                future_dataframe, input_data = self.createFutureDataFrame(dataInDataFrameFormat=future_dataframe, date_column="Date", frequency=frequency)
+                # 2.4. Transform to dataFrame
+                prediction_dataFrame_chunk = pd.DataFrame(np.squeeze(prediction, axis=0)).set_axis([self.model["var_to_predict"]], axis=1).set_index(future_dataframe["Date"])
+                # 2.3. Append to the full prediction DataFrame
+                full_predictions.append(prediction_dataFrame_chunk)
+            prediction_dataFrame = pd.concat([df for df in full_predictions], axis=0)
+            # 2.4. Truncate for not full batch steps
+            if steps_ahead % self.model["time_window"] != 0:
+                prediction_dataFrame = prediction_dataFrame.iloc[:-(self.model["time_window"] - steps_remaining)]
+        else:
+            raise Exception("Error in computing prediction steps!")
 
         return prediction_dataFrame

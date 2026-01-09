@@ -31,7 +31,7 @@ evaluation = eval.ModelEvaluation(model=trained_model).evaluateModelPerformance(
 
 # 3. Predict
 prediction_dataset = pred.ModelPrediction(model=trained_model).predictTimeSeriesWithTrainedModel(dataInDataFrameFormat=ren_prod_italy,
-                                                                                                 steps_ahead=96,
+                                                                                                 steps_ahead=192,
                                                                                                  frequency="15min",
                                                                                                  date_column="index")
 
