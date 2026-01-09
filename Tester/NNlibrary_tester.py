@@ -24,14 +24,14 @@ trained_model = train.ModelTraining(model=model).trainModel(dataInDataFrameForma
                                                             test_size=0.30,
                                                             batch_size=32,
                                                             validation_split=0.2,
-                                                            epochs=15)
+                                                            epochs=50)
 
 # 2. Evaluate the model
 evaluation = eval.ModelEvaluation(model=trained_model).evaluateModelPerformance()
 
 # 3. Predict
 prediction_dataset = pred.ModelPrediction(model=trained_model).predictTimeSeriesWithTrainedModel(dataInDataFrameFormat=ren_prod_italy,
-                                                                                                 steps_ahead=192,
+                                                                                                 steps_ahead=100,
                                                                                                  frequency="15min",
                                                                                                  date_column="index")
 

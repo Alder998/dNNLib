@@ -65,10 +65,10 @@ class ModelPrediction:
             full_predictions = []
             for chunk in range(full_chuncks):
                 prediction = self.model["model"].predict(input_data)
-                # 2.1. Update Input data
-                future_dataframe, input_data = self.createFutureDataFrame(dataInDataFrameFormat=future_dataframe, date_column="Date", frequency=frequency)
-                # 2.4. Transform to dataFrame
+                # 2.1. Transform to dataFrame
                 prediction_dataFrame_chunk = pd.DataFrame(np.squeeze(prediction, axis=0)).set_axis([self.model["var_to_predict"]], axis=1).set_index(future_dataframe["Date"])
+                # 2.2. Update Input data
+                future_dataframe, input_data = self.createFutureDataFrame(dataInDataFrameFormat=future_dataframe, date_column="Date", frequency=frequency)
                 # 2.3. Append to the full prediction DataFrame
                 full_predictions.append(prediction_dataFrame_chunk)
             prediction_dataFrame = pd.concat([df for df in full_predictions], axis=0)
