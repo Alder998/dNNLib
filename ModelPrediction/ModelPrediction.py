@@ -24,6 +24,8 @@ class ModelPrediction:
             future_dataframe["month"] = future_dataframe["Date"].dt.month
         if "day" in self.model["params"]:
             future_dataframe["day"] = future_dataframe["Date"].dt.day
+        if "day_of_week" in self.model["params"]:
+            future_dataframe["day_of_week"] = future_dataframe["Date"].dt.dayofweek
         if "hour" in self.model["params"]:
             future_dataframe["hour"] = future_dataframe["Date"].dt.hour
         if "minute" in self.model["params"]:

@@ -22,6 +22,7 @@ class Dataset:
         energy_prod_italy["year"] = energy_prod_italy.index.year
         energy_prod_italy["month"] = energy_prod_italy.index.month
         energy_prod_italy["day"] = energy_prod_italy.index.day
+        energy_prod_italy["day_of_week"] = energy_prod_italy.index.dayofweek
         energy_prod_italy["hour"] = energy_prod_italy.index.hour
         energy_prod_italy["minute"] = energy_prod_italy.index.minute
 
