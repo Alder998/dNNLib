@@ -34,6 +34,10 @@ class ModelPrediction:
         # 2. Drop Duplicated columns to allow re-creation
         future_dataframe = future_dataframe.loc[:, ~future_dataframe.columns.duplicated()]
 
+        # 2.1. Standardize the features
+        if self.model["feature_scaler"] is not None:
+            future_dataframe[self.model["params"]] = self.model["feature_scaler"].fit_transform(future_dataframe[self.model["params"]])
+
         # 3. Process the future dataframe with the batch size
         input_data = np.array(future_dataframe[self.model["params"]])
         batch_size_LSTM = int(input_data.shape[0] / self.model["time_window"])
@@ -56,11 +60,17 @@ class ModelPrediction:
             # 2. Predict with stored data
             prediction = self.model["model"].predict(input_data)
             prediction_dataFrame = pd.DataFrame(np.squeeze(prediction, axis=0)).set_axis([self.model["var_to_predict"]],axis=1).set_index(future_dataframe["Date"])
+            # 2.1. De-standardize
+            if self.model["target_scaler"] is not None:
+                prediction_dataFrame[self.model["var_to_predict"]] = self.model["target_scaler"].inverse_transform(pd.DataFrame(prediction_dataFrame[self.model["var_to_predict"]]))
             prediction_dataFrame = prediction_dataFrame[0:steps_ahead]
         elif steps_ahead == self.model["time_window"]:
             # 2. Predict with stored data
             prediction = self.model["model"].predict(input_data)
             prediction_dataFrame = pd.DataFrame(np.squeeze(prediction, axis=0)).set_axis([self.model["var_to_predict"]],axis=1).set_index(future_dataframe["Date"])
+            # 2.1. De-standardize
+            if self.model["target_scaler"] is not None:
+                prediction_dataFrame[self.model["var_to_predict"]] = self.model["target_scaler"].inverse_transform(pd.DataFrame(prediction_dataFrame[self.model["var_to_predict"]]))
         elif steps_ahead > self.model["time_window"]:
             full_chuncks = int(steps_ahead / self.model["time_window"]) if steps_ahead % self.model["time_window"] == 0 else int(steps_ahead / self.model["time_window"]) + 1
             steps_remaining = steps_ahead % self.model["time_window"]
@@ -69,6 +79,9 @@ class ModelPrediction:
                 prediction = self.model["model"].predict(input_data)
                 # 2.1. Transform to dataFrame
                 prediction_dataFrame_chunk = pd.DataFrame(np.squeeze(prediction, axis=0)).set_axis([self.model["var_to_predict"]], axis=1).set_index(future_dataframe["Date"])
+                # 2.1.1. De-standardize
+                if self.model["target_scaler"] is not None:
+                    prediction_dataFrame_chunk[self.model["var_to_predict"]] = self.model["target_scaler"].inverse_transform(pd.DataFrame(prediction_dataFrame_chunk[self.model["var_to_predict"]]))
                 # 2.2. Update Input data
                 future_dataframe, input_data = self.createFutureDataFrame(dataInDataFrameFormat=future_dataframe, date_column="Date", frequency=frequency)
                 # 2.3. Append to the full prediction DataFrame

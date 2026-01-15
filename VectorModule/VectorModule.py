@@ -2,6 +2,8 @@
 
 import numpy as np
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+import pandas as pd
 
 class VectorModule:
 
@@ -10,8 +12,35 @@ class VectorModule:
         self.modelStructure = modelStructure
         pass
 
+    # Function to standardize data
+    def standardizeData (self, dataInDataFrameFormat, feature_variables, target_variables):
+
+        # 0. Instantiate the scaler
+        feature_scaler = StandardScaler()
+        target_scaler = StandardScaler()
+
+        # 1. Scale the feature variables
+        dataInDataFrameFormat_scaled_features = dataInDataFrameFormat.copy()
+        dataInDataFrameFormat_scaled_features[feature_variables] = feature_scaler.fit_transform(dataInDataFrameFormat[feature_variables])
+
+        # 1. Scale the feature variables
+        dataInDataFrameFormat_scaled = dataInDataFrameFormat_scaled_features.copy()
+        dataInDataFrameFormat_scaled[target_variables] = target_scaler.fit_transform(pd.DataFrame(dataInDataFrameFormat_scaled_features[target_variables]))
+
+        # 2. Return the scaler + the data scaled
+        return feature_scaler, target_scaler, dataInDataFrameFormat_scaled
+
     # Data Processing for feed forward (easiest one)
-    def processDataForFF (self, feature_variables, target_variables, test_size, split_method="random"):
+    def processDataForFF (self, feature_variables, target_variables, test_size, standardize = False, split_method="random"):
+
+        # 0.0. Standardize the data
+        if standardize:
+            feature_scaler, target_scaler, self.dataInDataFrameFormat = self.standardizeData(dataInDataFrameFormat=self.dataInDataFrameFormat,
+                                                                                             feature_variables=feature_variables,
+                                                                                             target_variables=target_variables)
+        else:
+            feature_scaler = None
+            target_scaler = None
 
         # 0. It is needed an array of shape (index,) for target variable
         target_array = np.array(self.dataInDataFrameFormat[target_variables])
@@ -33,10 +62,19 @@ class VectorModule:
         else:
             raise Exception("The split method " + split_method + " is invalid!")
 
-        return features_train, features_test, target_train, target_test
+        return features_train, features_test, target_train, target_test, feature_scaler, target_scaler
 
     # Data Processing for recurrent NN
-    def processDataForRecurrentNet (self, feature_variables, target_variables, test_size, time_window, split_method="random"):
+    def processDataForRecurrentNet (self, feature_variables, target_variables, test_size, time_window, standardize=False, split_method="random"):
+
+        # 0.0. Standardize the data
+        if standardize:
+            feature_scaler, target_scaler, self.dataInDataFrameFormat = self.standardizeData(dataInDataFrameFormat=self.dataInDataFrameFormat,
+                                                                                             feature_variables=feature_variables,
+                                                                                             target_variables=target_variables)
+        else:
+            feature_scaler = None
+            target_scaler = None
 
         # 0. It is needed an array of shape (index,) for target variable
         target_array = np.array(self.dataInDataFrameFormat[target_variables])
@@ -68,21 +106,23 @@ class VectorModule:
         else:
             raise Exception("The split method " + split_method + " is invalid!")
 
-        return features_train, features_test, target_train, target_test
+        return features_train, features_test, target_train, target_test, feature_scaler, target_scaler
 
     # Main function for data processing
-    def processDataFrame (self, feature_variables, target_variables, test_size, time_window, split_method="random"):
+    def processDataFrame (self, feature_variables, target_variables, test_size, time_window, standardize=False, split_method="random"):
 
         # 0. initialize
         features_train = None
         features_test = None
         target_train = None
         target_test = None
+        feature_scaler = None
+        target_scaler = None
 
         # Process according model Structure
         if "FF" in self.modelStructure.keys():
-            features_train, features_test, target_train, target_test = self.processDataForFF(feature_variables, target_variables, test_size, split_method)
+            features_train, features_test, target_train, target_test, feature_scaler, target_scaler = self.processDataForFF(feature_variables, target_variables, test_size, standardize, split_method)
         if "LSTM" in self.modelStructure.keys():
-            features_train, features_test, target_train, target_test = self.processDataForRecurrentNet(feature_variables, target_variables, test_size, time_window, split_method)
+            features_train, features_test, target_train, target_test, feature_scaler, target_scaler = self.processDataForRecurrentNet(feature_variables, target_variables, test_size, time_window, standardize, split_method)
 
-        return features_train, features_test, target_train, target_test
+        return features_train, features_test, target_train, target_test, feature_scaler, target_scaler

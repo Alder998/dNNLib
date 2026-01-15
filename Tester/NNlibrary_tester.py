@@ -10,17 +10,19 @@ from ModelSaving import ModelSaving as ms
 # 0.0. get some data (2025 15 min-power production in Italy)
 ren_prod_italy = data.Dataset().getItalyEnergyProductionDataset()
 # 0.1. Set the params
-time_window = 288  # 48: 0.5 days | 96: 1 day | 192 : 2 days | 288: 3 days | 480: 5 days | 672: 7 days | 960: 10 days | 1920: 20 days
+time_window = 96  # 48: 0.5 days | 96: 1 day | 192 : 2 days | 288: 3 days | 480: 5 days | 672: 7 days | 960: 10 days | 1920: 20 days
 steps_ahead = 480
 var_to_predict = "Photovoltaic"  # 'Wind', 'Geothermal', 'Hydro', 'Photovoltaic', 'Biomass', 'Thermal', 'Self-consumption'
+model_name = "photovoltaic_prediction"
 
 # 0. Build the model
-model = arch.ModelArch(modelStructure={"LSTM": [64, 64, 64], "FF": [500, 500]}).createRegressionModelArchitecture(dropout_FF=0.2)
+model = arch.ModelArch(modelStructure={"LSTM": [64, 64, 64, 64, 64], "FF": [500, 500]}).createRegressionModelArchitecture(dropout_FF=0.2)
 
 # 1. Compile and train
 trained_model = train.ModelTraining(model=model).trainModel(dataInDataFrameFormat=ren_prod_italy,
-                                                            feature_variables=["month", "day", "hour", "minute"],   # "year" | "month" | "day" | "day_of_week" | "hour" | "minute"
+                                                            feature_variables=["month", "day_of_week", "hour", "minute"],   # "year" | "month" | "day" | "day_of_week" | "hour" | "minute"
                                                             target_variables=var_to_predict,
+                                                            standardize=False,
                                                             split_method="time-series",
                                                             time_window=time_window,
                                                             test_size=0.30,
@@ -39,7 +41,7 @@ prediction_dataset = pred.ModelPrediction(model=trained_model).predictTimeSeries
 
 # 4. Save Model Weights
 ms.ModelSaving(model=trained_model).saveModelWeights(save_dir="D:\\PythonProjects-Storage\\dNNLib\\Tester\\stored_models",
-                                                     model_name="photovoltaic_prediction")
+                                                     model_name=model_name)
 
 # 4. Plot the prediction
 plt.figure(figsize = (15, 5))
