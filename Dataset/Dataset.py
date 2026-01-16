@@ -8,10 +8,15 @@ class Dataset:
         pass
 
     # 0. Italy Energy Production Dataset
-    def getItalyEnergyProductionDataset (self):
+    def getItalyEnergyProductionDataset (self, freq="15m"):
 
         # 0.0. get some data (2025 15 min-power production in Italy)
-        dataset = pd.read_excel(r"C:\\Users\\alder\\Downloads\\Export-DownloadCenterFile-20260103-165403.xlsx")
+        if freq == "15m":
+            dataset = pd.read_excel(r"C:\\Users\\alder\\Downloads\\Export-DownloadCenterFile-20260103-165403.xlsx")
+        elif freq == "1h":
+            dataset = pd.read_excel(r"C:\\Users\\alder\\Downloads\\2021-2025_hourly_prod.xlsx")
+        else:
+            raise Exception("Frequency " + str(freq) + " is not supported.")
         # 0.1. Clean data
         energy_prod_italy = []
         for category in dataset["Primary Source"].unique():
