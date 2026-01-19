@@ -59,6 +59,26 @@ class VectorModule:
             features_test = features_array[train_index:]
             target_train = target_array[0:train_index]
             target_test = target_array[train_index:]
+        # 2.2. Implement seasonal split to account for different levels, but to maintain the temporal order
+        elif split_method == "seasonal-time-series":
+            train_index = int(features_array.shape[0] * (1-test_size))
+            train_list = list(int(i) for i in np.linspace(0, features_array.shape[0], 10))
+            tfl = []
+            ttl = []
+            indexes = []
+            for t in train_list[:-1]:
+                tf = features_array[t:min(t+int(train_index/10), features_array.shape[0]-1)]
+                tt = target_array[t:min(t+int(train_index/10), target_array.shape[0]-1)]
+                tfl.append(tf)
+                ttl.append(tt)
+                indexes.append(list(range(t, min(t+int(train_index/10), features_array.shape[0]-1))))
+            features_train = np.stack(tfl, axis=0)
+            features_train = features_train.reshape(features_train.shape[0] * features_train.shape[1], features_train.shape[2])
+            target_train = np.stack(ttl, axis=0)
+            target_train = target_train.reshape(target_train.shape[0] * target_train.shape[1])
+            indexes = [x for sub in indexes for x in sub]
+            features_test = np.delete(features_array, indexes, axis=0)
+            target_test = np.delete(target_array, indexes, axis=0)
         else:
             raise Exception("The split method " + split_method + " is invalid!")
 
@@ -103,6 +123,26 @@ class VectorModule:
             features_test = features_array[train_index:]
             target_train = target_array[0:train_index]
             target_test = target_array[train_index:]
+        # 2.2. Implement seasonal split to account for different levels, but to maintain the temporal order
+        elif split_method == "seasonal-time-series":
+            train_index = int(features_array.shape[0] * (1-test_size))
+            train_list = list(int(i) for i in np.linspace(0, features_array.shape[0], 10))
+            tfl = []
+            ttl = []
+            indexes = []
+            for t in train_list[:-1]:
+                tf = features_array[t:min(t+int(train_index/10), features_array.shape[0]-1)]
+                tt = target_array[t:min(t+int(train_index/10), target_array.shape[0]-1)]
+                tfl.append(tf)
+                ttl.append(tt)
+                indexes.append(list(range(t, min(t+int(train_index/10), features_array.shape[0]-1))))
+            features_train = np.stack(tfl, axis=0)
+            features_train = features_train.reshape(features_train.shape[0] * features_train.shape[1], features_train.shape[2], features_train.shape[3])
+            target_train = np.stack(ttl, axis=0)
+            target_train = target_train.reshape(target_train.shape[0] * target_train.shape[1], target_train.shape[2])
+            indexes = [x for sub in indexes for x in sub]
+            features_test = np.delete(features_array, indexes, axis=0)
+            target_test = np.delete(target_array, indexes, axis=0)
         else:
             raise Exception("The split method " + split_method + " is invalid!")
 

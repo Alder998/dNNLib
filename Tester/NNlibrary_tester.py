@@ -1,5 +1,7 @@
 """Simple tester"""
 import matplotlib.pyplot as plt
+import pandas as pd
+
 from Dataset import Dataset as data
 from ModelArch import ModelArch as arch
 from ModelTraining import ModelTraining as train
@@ -8,27 +10,28 @@ from ModelPrediction import ModelPrediction as pred
 from ModelSaving import ModelSaving as ms
 
 # 0.0. get some data (2025 15 min-power production in Italy)
-ren_prod_italy = data.Dataset().getItalyEnergyProductionDataset(freq="1h")
+dataset_freq = "15m"
+ren_prod_italy = data.Dataset().getItalyEnergyProductionDataset(freq=dataset_freq)
 # 0.1. Set the params
-time_window = 24  # 48: 0.5 days | 96: 1 day | 192 : 2 days | 288: 3 days | 480: 5 days | 672: 7 days | 960: 10 days | 1920: 20 days
+time_window = 96  # 48: 0.5 days | 96: 1 day | 192 : 2 days | 288: 3 days | 480: 5 days | 672: 7 days | 960: 10 days | 1920: 20 days
 steps_ahead = 120
 var_to_predict = "Hydro"  # 'Wind', 'Geothermal', 'Hydro', 'Photovoltaic', 'Biomass', 'Thermal', 'Self-consumption'
 model_name = "hydro_prediction_1h"
 
 # 0. Build the model
-model = arch.ModelArch(modelStructure={"LSTM": [64, 64, 64, 64, 64], "FF": [500, 500]}).createRegressionModelArchitecture(dropout_FF=0.2)
+model = arch.ModelArch(modelStructure={"LSTM": [64, 64, 64, 64, 64], "FF": [500, 500]}).createRegressionModelArchitecture(dropout_FF=0.3)
 
 # 1. Compile and train
 trained_model = train.ModelTraining(model=model).trainModel(dataInDataFrameFormat=ren_prod_italy,
-                                                            feature_variables=["month", "day_of_week", "hour", "minute"],   # "year" | "month" | "day" | "day_of_week" | "hour" | "minute"
+                                                            feature_variables=["year", "month", "day", "day_of_week", "hour", "minute"],   # "year" | "month" | "day" | "day_of_week" | "hour" | "minute"
                                                             target_variables=var_to_predict,
                                                             standardize=False,
-                                                            split_method="time-series",
+                                                            split_method="seasonal-time-series",
                                                             time_window=time_window,
                                                             test_size=0.30,
                                                             batch_size=32,
                                                             validation_split=0.2,
-                                                            epochs=50)
+                                                            epochs=100)
 
 # 2. Evaluate the model
 evaluation = eval.ModelEvaluation(model=trained_model).evaluateModelPerformance()
@@ -36,7 +39,7 @@ evaluation = eval.ModelEvaluation(model=trained_model).evaluateModelPerformance(
 # 3. Predict
 prediction_dataset = pred.ModelPrediction(model=trained_model).predictTimeSeriesWithTrainedModel(dataInDataFrameFormat=ren_prod_italy,
                                                                                                  steps_ahead=steps_ahead,
-                                                                                                 frequency="1h",
+                                                                                                 frequency=dataset_freq,
                                                                                                  date_column="index")
 
 # 4. Save Model Weights
