@@ -29,6 +29,7 @@ trained_model = train.ModelTraining(model=model).trainModel(dataInDataFrameForma
                                                             target_variables=var_to_predict,
                                                             standardize=False,
                                                             split_method="seasonal-time-series",
+                                                            seasonal_splits=53,
                                                             time_window=time_window,
                                                             test_size=0.30,
                                                             batch_size=32,

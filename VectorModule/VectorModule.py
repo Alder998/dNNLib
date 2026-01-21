@@ -31,7 +31,8 @@ class VectorModule:
         return feature_scaler, target_scaler, dataInDataFrameFormat_scaled
 
     # Data Processing for feed forward (easiest one)
-    def processDataForFF (self, feature_variables, target_variables, test_size, standardize = False, split_method="random"):
+    def processDataForFF (self, feature_variables, target_variables, test_size, standardize = False, split_method="random",
+                          seasonal_splits=10):
 
         # 0.0. Standardize the data
         if standardize:
@@ -62,16 +63,16 @@ class VectorModule:
         # 2.2. Implement seasonal split to account for different levels, but to maintain the temporal order
         elif split_method == "seasonal-time-series":
             train_index = int(features_array.shape[0] * (1-test_size))
-            train_list = list(int(i) for i in np.linspace(0, features_array.shape[0], 10))
+            train_list = list(int(i) for i in np.linspace(0, features_array.shape[0], seasonal_splits))
             tfl = []
             ttl = []
             indexes = []
             for t in train_list[:-1]:
-                tf = features_array[t:min(t+int(train_index/10), features_array.shape[0]-1)]
-                tt = target_array[t:min(t+int(train_index/10), target_array.shape[0]-1)]
+                tf = features_array[t:min(t+int(train_index/seasonal_splits), features_array.shape[0]-1)]
+                tt = target_array[t:min(t+int(train_index/seasonal_splits), target_array.shape[0]-1)]
                 tfl.append(tf)
                 ttl.append(tt)
-                indexes.append(list(range(t, min(t+int(train_index/10), features_array.shape[0]-1))))
+                indexes.append(list(range(t, min(t+int(train_index/seasonal_splits), features_array.shape[0]-1))))
             features_train = np.stack(tfl, axis=0)
             features_train = features_train.reshape(features_train.shape[0] * features_train.shape[1], features_train.shape[2])
             target_train = np.stack(ttl, axis=0)
@@ -85,7 +86,8 @@ class VectorModule:
         return features_train, features_test, target_train, target_test, feature_scaler, target_scaler
 
     # Data Processing for recurrent NN
-    def processDataForRecurrentNet (self, feature_variables, target_variables, test_size, time_window, standardize=False, split_method="random"):
+    def processDataForRecurrentNet (self, feature_variables, target_variables, test_size, time_window, standardize=False,
+                                    split_method="random", seasonal_splits=10):
 
         # 0.0. Standardize the data
         if standardize:
@@ -126,16 +128,16 @@ class VectorModule:
         # 2.2. Implement seasonal split to account for different levels, but to maintain the temporal order
         elif split_method == "seasonal-time-series":
             train_index = int(features_array.shape[0] * (1-test_size))
-            train_list = list(int(i) for i in np.linspace(0, features_array.shape[0], 10))
+            train_list = list(int(i) for i in np.linspace(0, features_array.shape[0], seasonal_splits))
             tfl = []
             ttl = []
             indexes = []
             for t in train_list[:-1]:
-                tf = features_array[t:min(t+int(train_index/10), features_array.shape[0]-1)]
-                tt = target_array[t:min(t+int(train_index/10), target_array.shape[0]-1)]
+                tf = features_array[t:min(t+int(train_index/seasonal_splits), features_array.shape[0]-1)]
+                tt = target_array[t:min(t+int(train_index/seasonal_splits), target_array.shape[0]-1)]
                 tfl.append(tf)
                 ttl.append(tt)
-                indexes.append(list(range(t, min(t+int(train_index/10), features_array.shape[0]-1))))
+                indexes.append(list(range(t, min(t+int(train_index/seasonal_splits), features_array.shape[0]-1))))
             features_train = np.stack(tfl, axis=0)
             features_train = features_train.reshape(features_train.shape[0] * features_train.shape[1], features_train.shape[2], features_train.shape[3])
             target_train = np.stack(ttl, axis=0)
@@ -149,7 +151,8 @@ class VectorModule:
         return features_train, features_test, target_train, target_test, feature_scaler, target_scaler
 
     # Main function for data processing
-    def processDataFrame (self, feature_variables, target_variables, test_size, time_window, standardize=False, split_method="random"):
+    def processDataFrame (self, feature_variables, target_variables, test_size, time_window, standardize=False,
+                          split_method="random", seasonal_splits=10):
 
         # 0. initialize
         features_train = None
@@ -163,6 +166,6 @@ class VectorModule:
         if "FF" in self.modelStructure.keys():
             features_train, features_test, target_train, target_test, feature_scaler, target_scaler = self.processDataForFF(feature_variables, target_variables, test_size, standardize, split_method)
         if "LSTM" in self.modelStructure.keys():
-            features_train, features_test, target_train, target_test, feature_scaler, target_scaler = self.processDataForRecurrentNet(feature_variables, target_variables, test_size, time_window, standardize, split_method)
+            features_train, features_test, target_train, target_test, feature_scaler, target_scaler = self.processDataForRecurrentNet(feature_variables, target_variables, test_size, time_window, standardize, split_method, seasonal_splits)
 
         return features_train, features_test, target_train, target_test, feature_scaler, target_scaler

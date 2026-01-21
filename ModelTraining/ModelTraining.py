@@ -8,12 +8,12 @@ class ModelTraining:
     def __init__(self, model):
         self.model = model
 
-    def trainModel (self, dataInDataFrameFormat, feature_variables, target_variables, test_size, validation_split, standardize, batch_size, epochs, time_window, split_method="random"):
+    def trainModel (self, dataInDataFrameFormat, feature_variables, target_variables, test_size, validation_split, standardize, batch_size, epochs, time_window, split_method="random", seasonal_splits=10):
 
         # 0. Make pandas dataFrame array, to be used for training
         print("INFO - MODEL TRAINING: Vectorizing the data from a DataFrame format...")
         features_train, features_test, target_train, target_test, feature_scaler, target_scaler = vector.VectorModule(dataInDataFrameFormat=dataInDataFrameFormat,
-                                                                                                                      modelStructure=self.model["modelStructure"]).processDataFrame(feature_variables, target_variables, test_size, time_window, standardize, split_method)
+                                                                                                                      modelStructure=self.model["modelStructure"]).processDataFrame(feature_variables, target_variables, test_size, time_window, standardize, split_method, seasonal_splits)
         modelTrainingInfo = {}
         print("INFO - MODEL TRAINING: Compilation and training...")
         # 1. Compile the model
