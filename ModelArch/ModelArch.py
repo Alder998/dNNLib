@@ -1,5 +1,7 @@
 """Class to create the Model Architecture according user params"""
 import tensorflow as tf
+from keras.src.layers import LSTM
+
 
 class ModelArch:
 
@@ -11,10 +13,10 @@ class ModelArch:
     def createFeedForwardLayer(self, model, dropout_FF=None):
 
         # 1. Iterate for the FF layers specified by the user
-        for l in range(len(self.modelStructure['FF'])):
+        for l in range(len(self.modelStructure['FF']["layers"])):
             # 1.1. extract the Feed-Forward units and the nodes for each one of the layer
-            unitsFF = self.modelStructure['FF'][l]
-            layerFF = tf.keras.layers.Dense(unitsFF, activation='relu')
+            unitsFF = self.modelStructure['FF']["layers"][l]
+            layerFF = tf.keras.layers.Dense(unitsFF, activation=self.modelStructure['FF']["activation"])
             # 1.2. Add the Dropout layer for FF
             if dropout_FF is not None:
                 model.add(tf.keras.layers.Dropout(dropout_FF))
@@ -27,12 +29,16 @@ class ModelArch:
     def createRecurrentLayer(self, model):
 
         # 1. Iterate for the FF layers specified by the user
-        for l in range(len(self.modelStructure['LSTM'])):
-            # 1.1. extract the LSTM units and the nodes for each one of the layer
-            unitsLSTM = self.modelStructure['LSTM'][l]
-            layerLSTM = tf.keras.layers.LSTM(unitsLSTM, activation='tanh', return_sequences=True)
-            # 1.3. Finally, add the FF layer to the model
-            model.add(layerLSTM)
+        if 'LSTM' in self.modelStructure.keys():
+            for l in range(len(self.modelStructure['LSTM']["layers"])):
+                # 1.1. extract the LSTM units and the nodes for each one of the layer
+                unitsLSTM = self.modelStructure['LSTM']["layers"][l]
+                layerLSTM = tf.keras.layers.LSTM(unitsLSTM, activation=self.modelStructure['LSTM']["activation"],
+                                                 return_sequences=True, dropout=self.modelStructure['LSTM']["dropout"])
+                # 1.3. Finally, add the FF layer to the model
+                model.add(layerLSTM)
+
+        # 2. Add option for Bidirectional Layer
 
         return model
 
@@ -45,7 +51,7 @@ class ModelArch:
 
         if "FF" in self.modelStructure.keys():
             self.createFeedForwardLayer(model, dropout_FF=dropout_FF)
-        if "LSTM" in self.modelStructure.keys():
+        if ("LSTM" in self.modelStructure.keys()) | ("Bidirectional" in self.modelStructure.keys()):
             self.createRecurrentLayer(model)
 
         return model
