@@ -49,10 +49,10 @@ class ModelArch:
         # 0. Initialize tf model object
         model = tf.keras.Sequential()
 
-        if "FF" in self.modelStructure.keys():
-            self.createFeedForwardLayer(model, dropout_FF=dropout_FF)
         if ("LSTM" in self.modelStructure.keys()) | ("Bidirectional" in self.modelStructure.keys()):
             self.createRecurrentLayer(model)
+        if "FF" in self.modelStructure.keys():
+            self.createFeedForwardLayer(model, dropout_FF=dropout_FF)
 
         return model
 

@@ -10,22 +10,22 @@ from ModelPrediction import ModelPrediction as pred
 from ModelSaving import ModelSaving as ms
 
 # 0.0. get some data (2025 15 min-power production in Italy)
-dataset_freq = "1h"
+dataset_freq = "15min"
 ren_prod_italy = data.Dataset().getItalyEnergyProductionDataset(freq=dataset_freq)
 # 0.1. Set the params
 # 48: 0.5 days | 96: 1 day | 192 : 2 days | 288: 3 days | 480: 5 days | 672: 7 days | 960: 10 days | 1920: 20 days
-time_window = 48
-steps_ahead = 72
-var_to_predict = "Hydro"  # 'Wind', 'Geothermal', 'Hydro', 'Photovoltaic', 'Biomass', 'Thermal', 'Self-consumption'
+time_window = 960
+steps_ahead = 288
+var_to_predict = "Photovoltaic"  # 'Wind', 'Geothermal', 'Hydro', 'Photovoltaic', 'Biomass', 'Thermal', 'Self-consumption'
 model_name = var_to_predict.lower() + "_prediction_" + dataset_freq
 
 # 0. Build the model
-model = arch.ModelArch(modelStructure={"LSTM": {"layers": [64, 64, 64, 64, 64], "activation": "tanh", "dropout": 0.1},
-                                       "FF": {"layers": [500, 500], "activation": "relu"}}).createRegressionModelArchitecture(dropout_FF=0.3)
+model = arch.ModelArch(modelStructure={"LSTM": {"layers": [64, 64, 64, 64, 64], "activation": "tanh", "dropout": 0.0},
+                                       "FF": {"layers": [500, 500], "activation": "relu"}}).createRegressionModelArchitecture(dropout_FF=0.2)
 
 # 1. Compile and train
 trained_model = train.ModelTraining(model=model).trainModel(dataInDataFrameFormat=ren_prod_italy,
-                                                            feature_variables=["year","month","day","hour","minute"],   # "year" | "month" | "day" | "day_of_week" | "hour" | "minute"
+                                                            feature_variables=["year","month","day","hour"],   # "year" | "month" | "day" | "day_of_week" | "hour" | "minute"
                                                             target_variables=var_to_predict,
                                                             standardize=False,
                                                             split_method="seasonal-time-series",
