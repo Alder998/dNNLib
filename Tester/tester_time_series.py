@@ -1,7 +1,6 @@
 """Simple tester"""
-import matplotlib.pyplot as plt
-import pandas as pd
 
+import matplotlib.pyplot as plt
 from Dataset import Dataset as data
 from ModelArch import ModelArch as arch
 from ModelTraining import ModelTraining as train

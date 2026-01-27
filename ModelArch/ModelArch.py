@@ -1,7 +1,6 @@
 """Class to create the Model Architecture according user params"""
 import tensorflow as tf
-from keras.src.layers import LSTM
-
+from tensorflow.keras import backend as K
 
 class ModelArch:
 
@@ -42,6 +41,42 @@ class ModelArch:
 
         return model
 
+    # Function to add a con2D layer
+    def createConv2DLayer (self, model):
+
+        if "Conv2D" in self.modelStructure.keys():
+            for l in range(len(self.modelStructure['Conv2D']["layers"])):
+                # 1.1. extract the LSTM units and the nodes for each one of the layer
+                unitsConv2D = self.modelStructure['Conv2D']["layers"][l]
+                layerConv2D = tf.keras.layers.Conv2D(filters=unitsConv2D,
+                                                     kernel_size=self.modelStructure['Conv2D']["kernel_size"],
+                                                     strides=self.modelStructure['Conv2D']["strides"],
+                                                     padding=self.modelStructure['Conv2D']["padding"],
+                                                     activation=self.modelStructure['Conv2D']["activation"])
+                layerPooling = tf.keras.layers.MaxPooling2D(pool_size=self.modelStructure['Conv2D']["pool_size"],
+                                                            padding=self.modelStructure['Conv2D']["padding"])
+                layerUpsample = tf.keras.layers.UpSampling2D(size=self.modelStructure['Conv2D']["pool_size"])
+                # 1.3. Finally, add the layers to the model
+                model.add(layerConv2D)
+                model.add(layerPooling)
+                model.add(layerUpsample)
+
+        return model
+
+    # Function to create a Layer to connect CNN and RNN
+    def ensure_3d (self):
+        def reshape_fn(x):
+            s = K.int_shape(x)
+            # s = (batch, time, d1, d2, ..., dn)
+
+            time_dim = s[1]
+            feature_dim = 1
+            for d in s[2:]:
+                feature_dim *= d
+
+            return tf.reshape(x, (-1, time_dim, feature_dim))
+
+        return tf.keras.layers.Lambda(reshape_fn)
 
     # Generalized method to create a Model with custom layers
     def createModelArchitecture(self, dropout_FF=None):
@@ -49,8 +84,17 @@ class ModelArch:
         # 0. Initialize tf model object
         model = tf.keras.Sequential()
 
+        prev_block = ""
+        if "Conv2D" in self.modelStructure.keys():
+            self.createConv2DLayer(model)
+            prev_block = "Conv2D"
+
         if ("LSTM" in self.modelStructure.keys()) | ("Bidirectional" in self.modelStructure.keys()):
+            if prev_block == "Conv2D":
+                model.add(self.ensure_3d())
             self.createRecurrentLayer(model)
+            prev_block = "LSTM"
+
         if "FF" in self.modelStructure.keys():
             self.createFeedForwardLayer(model, dropout_FF=dropout_FF)
 

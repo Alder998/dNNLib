@@ -32,3 +32,19 @@ class Dataset:
         energy_prod_italy["minute"] = energy_prod_italy.index.minute
 
         return energy_prod_italy
+
+    def loadWeatherDataset (self):
+
+        # 0.0. Load the .csv data
+        wdata = pd.read_csv("C:\\Users\\alder\\Downloads\\1m_weather.xlsx")
+
+        # 0.1. Convert the date columns to datetime
+        wdata["date"] = pd.to_datetime(wdata["date"])
+
+        # 0.2. Create time variables
+        wdata["year"] = wdata["date"].dt.year
+        wdata["month"] = wdata["date"].dt.month
+        wdata["day"] = wdata["date"].dt.day
+        wdata["hour"] = wdata["date"].dt.hour
+
+        return wdata.sort_values(by="date", ascending=True).reset_index(drop=True)

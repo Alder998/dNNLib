@@ -94,3 +94,4 @@ class ModelPrediction:
             raise Exception("Error in computing prediction steps!")
 
         return prediction_dataFrame
+
