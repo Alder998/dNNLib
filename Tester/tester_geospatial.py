@@ -34,4 +34,4 @@ evaluation = eval.ModelEvaluation(model=trained_model).evaluateModelPerformance(
 prediction_dataset = pred.ModelPrediction(model=trained_model).predictGeoSpatialWithTrainedModel(dataInDataFrameFormat=weatherData,
                                                                                                  steps_ahead=20,
                                                                                                  frequency="1h",
-                                                                                                 date_column="index")
+                                                                                                 date_column="date")

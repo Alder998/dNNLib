@@ -100,14 +100,20 @@ class ModelPrediction:
     def predictGeoSpatialWithTrainedModel (self, dataInDataFrameFormat, steps_ahead, frequency, date_column="index"):
 
         # 0. For each coordinate, create future dataFrame
-        unique_spaceVar = "_".join(self.model["space_variables"]) if len(self.model["space_variables"]) > 1 else self.model["space_variables"][0]
+        unique_spaceVar = self.model["space_variables"].astype(str).agg('_'.join, axis=1) if len(self.model["space_variables"].columns) > 1 else self.model["space_variables"]
         timeSpaceDataFrame = []
-        for coord in unique_spaceVar:
+        print("PREDICTION - Creating Geospatial Prediction Dataset...")
+        for coord in unique_spaceVar.unique():
             future_dataframe, input_data = self.createFutureDataFrame(dataInDataFrameFormat=dataInDataFrameFormat, date_column=date_column,
                                                  frequency=frequency)
             future_dataframe["space_unique"] = coord
             timeSpaceDataFrame.append(future_dataframe)
         timeSpaceDataFrame = pd.concat([df for df in timeSpaceDataFrame], axis=0).reset_index(drop=True)
+
+        # 1. Separate space columns
+        for i, space_col_name in enumerate(self.model["space_variables"].columns):
+            timeSpaceDataFrame[space_col_name] = timeSpaceDataFrame["space_unique"].str.split("_").str[i]
+        timeSpaceDataFrame = timeSpaceDataFrame.drop(columns="space_unique")
 
         # Transform into array
         v.VectorModule(modelStructure=self.model["modelStructure"]).processDataForGeospatialModel(dataInDataFrameFormat=timeSpaceDataFrame,
