@@ -1,6 +1,7 @@
 """Class to handle the model prediction according to the problem"""
 import numpy as np
 import pandas as pd
+from VectorModule import VectorModule as v
 
 class ModelPrediction:
 
@@ -35,7 +36,7 @@ class ModelPrediction:
         future_dataframe = future_dataframe.loc[:, ~future_dataframe.columns.duplicated()]
 
         # 2.1. Standardize the features
-        if self.model["feature_scaler"] is not None:
+        if (self.model["feature_scaler"][0] if isinstance(self.model["feature_scaler"], list) else self.model["feature_scaler"]) is not None:
             future_dataframe[self.model["params"]] = self.model["feature_scaler"].fit_transform(future_dataframe[self.model["params"]])
 
         # 3. Process the future dataframe with the batch size
@@ -95,3 +96,28 @@ class ModelPrediction:
 
         return prediction_dataFrame
 
+    # Function to predict with geospatial model
+    def predictGeoSpatialWithTrainedModel (self, dataInDataFrameFormat, steps_ahead, frequency, date_column="index"):
+
+        # 0. For each coordinate, create future dataFrame
+        unique_spaceVar = "_".join(self.model["space_variables"]) if len(self.model["space_variables"]) > 1 else self.model["space_variables"][0]
+        timeSpaceDataFrame = []
+        for coord in unique_spaceVar:
+            future_dataframe, input_data = self.createFutureDataFrame(dataInDataFrameFormat=dataInDataFrameFormat, date_column=date_column,
+                                                 frequency=frequency)
+            future_dataframe["space_unique"] = coord
+            timeSpaceDataFrame.append(future_dataframe)
+        timeSpaceDataFrame = pd.concat([df for df in timeSpaceDataFrame], axis=0).reset_index(drop=True)
+
+        # Transform into array
+        v.VectorModule(modelStructure=self.model["modelStructure"]).processDataForGeospatialModel(dataInDataFrameFormat=timeSpaceDataFrame,
+                                                                                                  feature_variables=self.model["params"],
+                                                                                                  target_variables=self.model["var_to_predict"],
+                                                                                                  test_size=0,
+                                                                                                  time_window=self.model["time_window"],
+                                                                                                  space_variables=self.model["space_variables"].columns,
+                                                                                                  standardize=False,
+                                                                                                  split_method="random",
+                                                                                                  seasonal_splits=0)
+
+        return 0

@@ -7,8 +7,7 @@ import pandas as pd
 
 class VectorModule:
 
-    def __init__(self, dataInDataFrameFormat, modelStructure):
-        self.dataInDataFrameFormat = dataInDataFrameFormat
+    def __init__(self, modelStructure):
         self.modelStructure = modelStructure
         pass
 
@@ -164,7 +163,7 @@ class VectorModule:
         target_test = []
         feature_scaler = []
         target_scaler = []
-        for uniqueCoord in self.dataInDataFrameFormat[space_col].unique():
+        for uniqueCoord in dataInDataFrameFormat[space_col].unique():
             dfc = dataInDataFrameFormat[dataInDataFrameFormat[space_col] == uniqueCoord].reset_index(drop=True)
             features_train_i, features_test_i, target_train_i, target_test_i, feature_scaler_i, target_scaler_i = self.processDataForRecurrentNet(dfc, feature_variables, target_variables, test_size, time_window, standardize, split_method, seasonal_splits)
             features_train.append(features_train_i)
@@ -184,7 +183,7 @@ class VectorModule:
         return features_train, features_test, target_train, target_test, feature_scaler, target_scaler
 
     # Main function for data processing
-    def processDataFrame (self, feature_variables, target_variables, test_size, time_window, standardize=False,
+    def processDataFrame (self, dataInDataFrameFormat, feature_variables, target_variables, test_size, time_window, standardize=False,
                           split_method="random", seasonal_splits=10, timeSpace=False, space_variables=None):
 
         # 0. initialize
@@ -197,14 +196,14 @@ class VectorModule:
 
         # Process according model Structure
         if "FF" in self.modelStructure.keys():
-            features_train, features_test, target_train, target_test, feature_scaler, target_scaler = self.processDataForFF(self.dataInDataFrameFormat, feature_variables, target_variables, test_size, standardize, split_method)
+            features_train, features_test, target_train, target_test, feature_scaler, target_scaler = self.processDataForFF(dataInDataFrameFormat, feature_variables, target_variables, test_size, standardize, split_method)
         if "LSTM" in self.modelStructure.keys():
-            features_train, features_test, target_train, target_test, feature_scaler, target_scaler = self.processDataForRecurrentNet(self.dataInDataFrameFormat, feature_variables, target_variables, test_size, time_window, standardize, split_method, seasonal_splits)
+            features_train, features_test, target_train, target_test, feature_scaler, target_scaler = self.processDataForRecurrentNet(dataInDataFrameFormat, feature_variables, target_variables, test_size, time_window, standardize, split_method, seasonal_splits)
         if "Conv2D" in self.modelStructure.keys():
-            features_train, features_test, target_train, target_test, feature_scaler, target_scaler = self.processDataForRecurrentNet(self.dataInDataFrameFormat, feature_variables, target_variables, test_size, time_window, standardize, split_method, seasonal_splits)
+            features_train, features_test, target_train, target_test, feature_scaler, target_scaler = self.processDataForRecurrentNet(dataInDataFrameFormat, feature_variables, target_variables, test_size, time_window, standardize, split_method, seasonal_splits)
 
         # Ad-hoc config for time-space
         if timeSpace:
-            features_train, features_test, target_train, target_test, feature_scaler, target_scaler = self.processDataForGeospatialModel(self.dataInDataFrameFormat, feature_variables, target_variables, test_size, time_window, space_variables, standardize, split_method, seasonal_splits)
+            features_train, features_test, target_train, target_test, feature_scaler, target_scaler = self.processDataForGeospatialModel(dataInDataFrameFormat, feature_variables, target_variables, test_size, time_window, space_variables, standardize, split_method, seasonal_splits)
 
         return features_train, features_test, target_train, target_test, feature_scaler, target_scaler

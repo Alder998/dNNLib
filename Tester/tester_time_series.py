@@ -33,7 +33,7 @@ trained_model = train.ModelTraining(model=model).trainModel(dataInDataFrameForma
                                                             test_size=0.30,
                                                             batch_size=32,
                                                             validation_split=0.2,
-                                                            epochs=100)
+                                                            epochs=5)
 
 # 2. Evaluate the model
 evaluation = eval.ModelEvaluation(model=trained_model).evaluateModelPerformance()

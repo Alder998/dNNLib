@@ -26,6 +26,12 @@ trained_model = train.ModelTraining(model=model).trainGeospatialModel(dataInData
                                                                       test_size=0.30,
                                                                       batch_size=32,
                                                                       validation_split=0.2,
-                                                                      epochs=100)
+                                                                      epochs=10)
 # 2. Evaluate Model
 evaluation = eval.ModelEvaluation(model=trained_model).evaluateModelPerformance()
+
+# 3. Predict the future
+prediction_dataset = pred.ModelPrediction(model=trained_model).predictGeoSpatialWithTrainedModel(dataInDataFrameFormat=weatherData,
+                                                                                                 steps_ahead=20,
+                                                                                                 frequency="1h",
+                                                                                                 date_column="index")
