@@ -86,7 +86,7 @@ class VectorModule:
 
     # Data Processing for recurrent NN
     def processDataForRecurrentNet (self, dataInDataFrameFormat, feature_variables, target_variables, test_size, time_window, standardize=False,
-                                    split_method="random", seasonal_splits=10):
+                                    split_method="random", seasonal_splits=10, prediction=False):
 
         # 0.0. Standardize the data
         if standardize:
@@ -112,6 +112,10 @@ class VectorModule:
             fabst.append(fabt)
         features_array = np.stack(fabs, axis=0)
         target_array = np.stack(fabst, axis=0)
+
+        # 1.1. if prediction, preserve the data
+        if prediction:
+            return features_array, target_array, feature_scaler, target_scaler
 
         # 2. Split for train, test, validation
         if split_method == "random":
@@ -151,40 +155,64 @@ class VectorModule:
 
     # Data Processing for geo-spatial Model
     def processDataForGeospatialModel (self, dataInDataFrameFormat, feature_variables, target_variables, test_size, time_window, space_variables, standardize=False,
-                                       split_method="random", seasonal_splits=10):
+                                       split_method="random", seasonal_splits=10, prediction=False):
 
         # 0. Isolate single time-series for each coord
         space_col = "_".join(space_variables) if len(space_variables) > 1 else space_variables[0]
-        dataInDataFrameFormat[space_col] = dataInDataFrameFormat[space_variables].astype(str).agg("_".join, axis=1) if len(space_variables) > 1 else self.dataInDataFrameFormat[space_variables[0]]
+        dataInDataFrameFormat[space_col] = dataInDataFrameFormat[space_variables].astype(str).agg("_".join, axis=1) if len(space_variables) > 1 else dataInDataFrameFormat[space_variables[0]]
 
-        features_train = []
-        features_test = []
-        target_train = []
-        target_test = []
-        feature_scaler = []
-        target_scaler = []
-        for uniqueCoord in dataInDataFrameFormat[space_col].unique():
-            dfc = dataInDataFrameFormat[dataInDataFrameFormat[space_col] == uniqueCoord].reset_index(drop=True)
-            features_train_i, features_test_i, target_train_i, target_test_i, feature_scaler_i, target_scaler_i = self.processDataForRecurrentNet(dfc, feature_variables, target_variables, test_size, time_window, standardize, split_method, seasonal_splits)
-            features_train.append(features_train_i)
-            features_test.append(features_test_i)
-            target_train.append(target_train_i)
-            target_test.append(target_test_i)
-            feature_scaler.append(feature_scaler_i)
-            target_scaler.append(target_scaler_i)
-        features_train = np.stack(features_train, axis = 3)
-        features_test = np.stack(features_test, axis = 3)
-        target_train = np.stack(target_train, axis = 2)
-        target_test = np.stack(target_test, axis = 2)
-        if feature_scaler[0] is not None:
-            feature_scaler = np.stack(feature_scaler, axis = 3)
-            target_scaler = np.stack(target_scaler, axis = 3)
+        if not prediction:
+            features_train = []
+            features_test = []
+            target_train = []
+            target_test = []
+            feature_scaler = []
+            target_scaler = []
+            for uniqueCoord in dataInDataFrameFormat[space_col].unique():
+                dfc = dataInDataFrameFormat[dataInDataFrameFormat[space_col] == uniqueCoord].reset_index(drop=True)
+                features_train_i, features_test_i, target_train_i, target_test_i, feature_scaler_i, target_scaler_i = self.processDataForRecurrentNet(dfc, feature_variables, target_variables, test_size, time_window, standardize, split_method, seasonal_splits)
+                features_train.append(features_train_i)
+                features_test.append(features_test_i)
+                target_train.append(target_train_i)
+                target_test.append(target_test_i)
+                feature_scaler.append(feature_scaler_i)
+                target_scaler.append(target_scaler_i)
+            features_train = np.stack(features_train, axis = 3)
+            features_test = np.stack(features_test, axis = 3)
+            target_train = np.stack(target_train, axis = 2)
+            target_test = np.stack(target_test, axis = 2)
+            if feature_scaler[0] is not None:
+                feature_scaler = np.stack(feature_scaler, axis = 3)
+                target_scaler = np.stack(target_scaler, axis = 3)
 
-        return features_train, features_test, target_train, target_test, feature_scaler, target_scaler
+            return features_train, features_test, target_train, target_test, feature_scaler, target_scaler
+
+        else:
+            features_array = []
+            target_array = []
+            feature_scaler = []
+            target_scaler = []
+            for uniqueCoord in dataInDataFrameFormat[space_col].unique():
+                dfc = dataInDataFrameFormat[dataInDataFrameFormat[space_col] == uniqueCoord].reset_index(drop=True)
+                features_array_i, target_array_i, feature_scaler_i, target_scaler_i = self.processDataForRecurrentNet(
+                    dfc, feature_variables, target_variables, test_size, time_window, standardize, split_method,
+                    seasonal_splits, prediction=True)
+                features_array.append(features_array_i)
+                target_array.append(target_array_i)
+                feature_scaler.append(feature_scaler_i)
+                target_scaler.append(target_scaler_i)
+            features_array = np.stack(features_array, axis=3)
+            target_array = np.stack(target_array, axis=2)
+            if feature_scaler[0] is not None:
+                feature_scaler = np.stack(feature_scaler, axis=3)
+                target_scaler = np.stack(target_scaler, axis=3)
+
+            return features_array, target_array, feature_scaler, target_scaler
+
 
     # Main function for data processing
     def processDataFrame (self, dataInDataFrameFormat, feature_variables, target_variables, test_size, time_window, standardize=False,
-                          split_method="random", seasonal_splits=10, timeSpace=False, space_variables=None):
+                          split_method="random", seasonal_splits=10, timeSpace=False, space_variables=None, prediction=False):
 
         # 0. initialize
         features_train = None
@@ -198,12 +226,12 @@ class VectorModule:
         if "FF" in self.modelStructure.keys():
             features_train, features_test, target_train, target_test, feature_scaler, target_scaler = self.processDataForFF(dataInDataFrameFormat, feature_variables, target_variables, test_size, standardize, split_method)
         if "LSTM" in self.modelStructure.keys():
-            features_train, features_test, target_train, target_test, feature_scaler, target_scaler = self.processDataForRecurrentNet(dataInDataFrameFormat, feature_variables, target_variables, test_size, time_window, standardize, split_method, seasonal_splits)
+            features_train, features_test, target_train, target_test, feature_scaler, target_scaler = self.processDataForRecurrentNet(dataInDataFrameFormat, feature_variables, target_variables, test_size, time_window, standardize, split_method, seasonal_splits, prediction=prediction)
         if "Conv2D" in self.modelStructure.keys():
-            features_train, features_test, target_train, target_test, feature_scaler, target_scaler = self.processDataForRecurrentNet(dataInDataFrameFormat, feature_variables, target_variables, test_size, time_window, standardize, split_method, seasonal_splits)
+            features_train, features_test, target_train, target_test, feature_scaler, target_scaler = self.processDataForRecurrentNet(dataInDataFrameFormat, feature_variables, target_variables, test_size, time_window, standardize, split_method, seasonal_splits, prediction=prediction)
 
         # Ad-hoc config for time-space
         if timeSpace:
-            features_train, features_test, target_train, target_test, feature_scaler, target_scaler = self.processDataForGeospatialModel(dataInDataFrameFormat, feature_variables, target_variables, test_size, time_window, space_variables, standardize, split_method, seasonal_splits)
+            features_train, features_test, target_train, target_test, feature_scaler, target_scaler = self.processDataForGeospatialModel(dataInDataFrameFormat, feature_variables, target_variables, test_size, time_window, space_variables, standardize, split_method, seasonal_splits, prediction=prediction)
 
         return features_train, features_test, target_train, target_test, feature_scaler, target_scaler

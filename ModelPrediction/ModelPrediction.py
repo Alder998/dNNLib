@@ -114,16 +114,19 @@ class ModelPrediction:
         for i, space_col_name in enumerate(self.model["space_variables"].columns):
             timeSpaceDataFrame[space_col_name] = timeSpaceDataFrame["space_unique"].str.split("_").str[i]
         timeSpaceDataFrame = timeSpaceDataFrame.drop(columns="space_unique")
+        timeSpaceDataFrame[self.model["var_to_predict"]] = 0
 
         # Transform into array
-        v.VectorModule(modelStructure=self.model["modelStructure"]).processDataForGeospatialModel(dataInDataFrameFormat=timeSpaceDataFrame,
-                                                                                                  feature_variables=self.model["params"],
-                                                                                                  target_variables=self.model["var_to_predict"],
-                                                                                                  test_size=0,
-                                                                                                  time_window=self.model["time_window"],
-                                                                                                  space_variables=self.model["space_variables"].columns,
-                                                                                                  standardize=False,
-                                                                                                  split_method="random",
-                                                                                                  seasonal_splits=0)
+        features_array, target_array, feature_scaler, target_scaler = v.VectorModule(modelStructure=self.model["modelStructure"]).processDataForGeospatialModel(dataInDataFrameFormat=timeSpaceDataFrame,
+                                                                                     feature_variables=self.model["params"],
+                                                                                     target_variables=self.model["var_to_predict"],
+                                                                                     test_size=None,
+                                                                                     time_window=self.model["time_window"],
+                                                                                     space_variables=self.model["space_variables"].columns,
+                                                                                     standardize=False,
+                                                                                     split_method="random",
+                                                                                     seasonal_splits=0,
+                                                                                     prediction=True)
+        model_prediction = self.model["model"].predict(features_array)
 
-        return 0
+        return model_prediction
