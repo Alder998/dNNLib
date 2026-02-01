@@ -129,4 +129,6 @@ class ModelPrediction:
                                                                                      prediction=True)
         model_prediction = self.model["model"].predict(features_array)
 
+        print("INFO - Model Prediction Shape: ", model_prediction.shape)
+
         return model_prediction
