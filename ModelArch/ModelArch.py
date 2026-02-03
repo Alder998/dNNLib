@@ -1,6 +1,7 @@
 """Class to create the Model Architecture according user params"""
 import tensorflow as tf
 from tensorflow.keras import backend as K
+from CustomLayers import GraphConv as gnn
 
 class ModelArch:
 
@@ -68,6 +69,33 @@ class ModelArch:
         else:
             raise Exception("Mode " + str(mode) + " not recognised!")
 
+    # Function to create and add to model LSTM layers
+    def createGNNLayer (self, model=None, modelBuilder=None, mode="sequential"):
+
+        # 1. Iterate for the FF layers specified by the user
+        if 'GNN' in self.modelStructure.keys():
+            for l in range(len(self.modelStructure['GNN']["layers"])):
+                # 1.1. extract the LSTM units and the nodes for each one of the layer
+                unitsGNN = self.modelStructure['GNN']["layers"][l]
+                layerGNN = gnn.GraphConvLayer(unitsGNN)
+                # 1.3. Finally, add the FF layer to the model
+
+                if mode == "functional":
+                    modelBuilder = layerGNN(modelBuilder)
+                elif mode == "sequential":
+                    model.add(layerGNN)
+                else:
+                    raise Exception("Mode " + str(mode) + " not recognised!")
+
+        # 2. Add option for Bidirectional Layer
+
+        if mode == "functional":
+            return modelBuilder
+        elif mode == "sequential":
+            return model
+        else:
+            raise Exception("Mode " + str(mode) + " not recognised!")
+
     # Generalized method to create a Model with custom layers
     def createModelArchitecture(self, dropout_FF=None, mode="sequential", features=None):
 
@@ -76,9 +104,11 @@ class ModelArch:
             # 0. Initialize tf model object
             model = tf.keras.Sequential()
 
-            if ("LSTM" in self.modelStructure.keys()) | ("Bidirectional" in self.modelStructure.keys()):
+            # 1. Add the recurrent layer, if required by the user
+            if "LSTM" in self.modelStructure.keys():
                 self.createRecurrentLayer(model)
 
+            # 2. Add the FF layer, if required by the user
             if "FF" in self.modelStructure.keys():
                 self.createFeedForwardLayer(model, dropout_FF=dropout_FF)
 
@@ -89,10 +119,13 @@ class ModelArch:
             inputs = tf.keras.Input(shape=(None, 716, features))
             modelBuilder = inputs
 
-            if ("LSTM" in self.modelStructure.keys()) | ("Bidirectional" in self.modelStructure.keys()):
+            if "LSTM" in self.modelStructure.keys():
                 modelBuilder = self.createRecurrentLayer(modelBuilder=modelBuilder, mode=mode)
 
             if "FF" in self.modelStructure.keys():
+                modelBuilder = self.createFeedForwardLayer(modelBuilder=modelBuilder, mode=mode)
+
+            if "GNN" in self.modelStructure.keys():
                 modelBuilder = self.createFeedForwardLayer(modelBuilder=modelBuilder, mode=mode)
 
             return modelBuilder, inputs
