@@ -3,6 +3,7 @@
 import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
+from sklearn.neighbors import kneighbors_graph
 import pandas as pd
 
 class VectorModule:
@@ -209,6 +210,33 @@ class VectorModule:
 
             return features_array, target_array, feature_scaler, target_scaler
 
+    # Utils-like function to create the Adjacency Matrix from a DataFrame
+    def createAdjacencyMatrixFromDataFrame (self, dataInDataFrameFormat, space_variables, target_variables):
+
+        # 0. Create a unique column for the coordinates
+        space_col = "_".join(space_variables) if len(space_variables) > 1 else space_variables[0]
+        dataInDataFrameFormat[space_col] = dataInDataFrameFormat[space_variables].astype(str).agg("_".join, axis=1) if len(space_variables) > 1 else dataInDataFrameFormat[space_variables[0]]
+        # 0.1. Select the columns of interest within the DataFrame
+        dataInDataFrameFormat = dataInDataFrameFormat[[space_col, target_variables]]
+
+        # MOMENTARY -- Mean to achieve the dimension for the matrix
+        data_grouped = dataInDataFrameFormat.groupby(space_col, as_index=False).mean()
+
+        # MOMENTARY -- KNN on mean data
+        data_grouped[space_variables] = (data_grouped[space_col].str.split('_', expand=True).astype(float))
+        A_sparse = kneighbors_graph(data_grouped.drop(columns=space_col).values, n_neighbors=3, mode='connectivity', include_self=False)
+        A = A_sparse.toarray()
+
+        return self.normalize_adjacency(A)
+
+    # Function to standardize adjacency Matrix
+    def normalize_adjacency(self, A):
+        import numpy as np
+        A = A + np.eye(A.shape[0])
+        D = np.diag(np.sum(A, axis=1))
+        D_inv_sqrt = np.linalg.inv(np.sqrt(D))
+        A_hat = D_inv_sqrt @ A @ D_inv_sqrt
+        return A_hat.astype("float32")
 
     # Main function for data processing
     def processDataFrame (self, dataInDataFrameFormat, feature_variables, target_variables, test_size, time_window, standardize=False,

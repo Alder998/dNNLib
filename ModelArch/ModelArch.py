@@ -1,7 +1,7 @@
 """Class to create the Model Architecture according user params"""
 import tensorflow as tf
 from tensorflow.keras import backend as K
-from CustomLayers import GraphConv as gnn
+from ModelArch.CustomLayers import GraphConv as gnn
 
 class ModelArch:
 
@@ -42,7 +42,7 @@ class ModelArch:
             raise Exception("Mode " + str(mode) + " not recognised!")
 
     # Function to create and add to model LSTM layers
-    def createRecurrentLayer(self, model=None, modelBuilder=None, mode="sequential"):
+    def createLSTMLayer(self, model=None, modelBuilder=None, mode="sequential"):
 
         # 1. Iterate for the FF layers specified by the user
         if 'LSTM' in self.modelStructure.keys():
@@ -69,21 +69,28 @@ class ModelArch:
         else:
             raise Exception("Mode " + str(mode) + " not recognised!")
 
-    # Function to create and add to model LSTM layers
-    def createGNNLayer (self, model=None, modelBuilder=None, mode="sequential"):
+    # Function to create a GraphConv Layer with TensorFlowService
+    def createGraphConvLayer(self, model=None, modelBuilder=None, mode="sequential", adjacency_matrix=None):
 
-        # 1. Iterate for the FF layers specified by the user
-        if 'GNN' in self.modelStructure.keys():
-            for l in range(len(self.modelStructure['GNN']["layers"])):
+        # 1. Iterate for the GConv layers specified by the user
+        if 'GConv' in self.modelStructure.keys():
+            for l in range(len(self.modelStructure['GConv']["layers"])):
                 # 1.1. extract the LSTM units and the nodes for each one of the layer
-                unitsGNN = self.modelStructure['GNN']["layers"][l]
-                layerGNN = gnn.GraphConvLayer(unitsGNN)
+                unitsGConv = self.modelStructure['GConv']["layers"][l]
+                layerGConv = gnn.GraphConv(unitsGConv,
+                                           adjacency_matrix,
+                                           self.modelStructure['GConv']["activation"])
                 # 1.3. Finally, add the FF layer to the model
+                def time_distributed(layer, x):
+                    if len(x.shape) == 4:
+                        return tf.keras.layers.TimeDistributed(layer)(x)
+                    return layer(x)
 
                 if mode == "functional":
-                    modelBuilder = layerGNN(modelBuilder)
+                    modelBuilder = time_distributed(layerGConv, modelBuilder)
+
                 elif mode == "sequential":
-                    model.add(layerGNN)
+                    model.add(layerGConv)
                 else:
                     raise Exception("Mode " + str(mode) + " not recognised!")
 
@@ -97,7 +104,7 @@ class ModelArch:
             raise Exception("Mode " + str(mode) + " not recognised!")
 
     # Generalized method to create a Model with custom layers
-    def createModelArchitecture(self, dropout_FF=None, mode="sequential", features=None):
+    def createModelArchitecture(self, dropout_FF=None, mode="sequential", features=None, adjacency_matrix=None):
 
         # 0. Initialize tf model object
         if mode=="sequential":
@@ -106,7 +113,7 @@ class ModelArch:
 
             # 1. Add the recurrent layer, if required by the user
             if "LSTM" in self.modelStructure.keys():
-                self.createRecurrentLayer(model)
+                self.createLSTMLayer(model)
 
             # 2. Add the FF layer, if required by the user
             if "FF" in self.modelStructure.keys():
@@ -119,13 +126,13 @@ class ModelArch:
             inputs = tf.keras.Input(shape=(None, 716, features))
             modelBuilder = inputs
 
+            if "GConv" in self.modelStructure.keys():
+                modelBuilder = self.createGraphConvLayer(modelBuilder=modelBuilder, mode=mode, adjacency_matrix=adjacency_matrix)
+
             if "LSTM" in self.modelStructure.keys():
-                modelBuilder = self.createRecurrentLayer(modelBuilder=modelBuilder, mode=mode)
+                modelBuilder = self.createLSTMLayer(modelBuilder=modelBuilder, mode=mode)
 
             if "FF" in self.modelStructure.keys():
-                modelBuilder = self.createFeedForwardLayer(modelBuilder=modelBuilder, mode=mode)
-
-            if "GNN" in self.modelStructure.keys():
                 modelBuilder = self.createFeedForwardLayer(modelBuilder=modelBuilder, mode=mode)
 
             return modelBuilder, inputs
@@ -134,12 +141,12 @@ class ModelArch:
             raise Exception("Mode " + str(mode) + " not recognised!")
 
     # Super-generalized function to have a Regression Model
-    def createRegressionModelArchitecture(self, mode="sequential", dropout_FF=None, features=None):
+    def createRegressionModelArchitecture(self, mode="sequential", dropout_FF=None, adjacency_matrix=None):
 
         # Logging
         print("INFO - MODEL ARCHITECTURE: creating model Architecture for regression...")
         modelInfo = {}
-        modelBuilder, inputs = self.createModelArchitecture(mode=mode, dropout_FF=dropout_FF)
+        modelBuilder, inputs = self.createModelArchitecture(mode=mode, dropout_FF=dropout_FF, adjacency_matrix=adjacency_matrix)
         if mode=="sequential":
             modelBuilder.add(tf.keras.layers.Dense(1, activation='linear'))
         elif mode=="functional":

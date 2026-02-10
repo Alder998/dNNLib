@@ -6,12 +6,23 @@ from ModelTraining import ModelTraining as train
 from ModelEvaluation import ModelEvaluation as eval
 from ModelPrediction import ModelPrediction as pred
 from ModelSaving import ModelSaving as ms
+from VectorModule import VectorModule as vector
 
 weatherData = data.Dataset().loadWeatherDataset()
 
+modelStructure = {"GNN": {"layers": [32, 32, 32], "activation": "relu", "kernel_size":(3, 3), "strides": (1, 1), "padding": "same", "pool_size": (2, 2)},
+                  "FF": {"layers": [500, 500], "activation": "relu"}}
+
+# 0. Create Adjacency Matrix
+adjacency_matrix = vector.VectorModule(modelStructure=modelStructure).createAdjacencyMatrixFromDataFrame(dataInDataFrameFormat=weatherData,
+                                                                                                   target_variables="temperature",
+                                                                                                   space_variables=["latitude", "longitude"])
+
 # 1. Create Model
-model = arch.ModelArch(modelStructure={"ConvLSTM2D": {"layers": [32, 32, 32], "activation": "relu", "kernel_size":(3, 3), "strides": (1, 1), "padding": "same", "pool_size": (2, 2)},
-                                       "FF": {"layers": [500, 500], "activation": "relu"}}).createRegressionModelArchitecture(dropout_FF=0.2, mode="sequential", features=4)
+model = arch.ModelArch(modelStructure=modelStructure).createRegressionModelArchitecture(dropout_FF=0.2,
+                                                                                        mode="functional",
+                                                                                        adjacency_matrix=adjacency_matrix)
+
 # 2. Train Model
 trained_model = train.ModelTraining(model=model).trainGeospatialModel(dataInDataFrameFormat=weatherData,
                                                                       feature_variables=["year","month","day","hour"],

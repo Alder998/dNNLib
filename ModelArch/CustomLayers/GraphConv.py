@@ -2,15 +2,36 @@
 
 import tensorflow as tf
 
-class GraphConvLayer (tf.keras.layers.Layer):
+# Class initialization upon keras layer.Layers class
+class GraphConv(tf.keras.layers.Layer):
 
-    def __init__(self, adjacency_matrix, units, **kwargs):
-        super().__init__()
-        self.adjacency_matrix = tf.constant(adjacency_matrix, dtype=tf.float32)
-        self.W = self.add_weight(...)
+    def __init__(self, output_dim, adjacency_matrix, activation, **kwargs):
+        super().__init__(**kwargs)
+        self.output_dim = output_dim
+        self.adjacency_matrix = tf.constant(adjacency_matrix)  # matrix has to be fixed with tf.constant
+        self.activation = activation
+
+    # Build function to add weights to the model
+    def build(self, input_shape):
+        input_dim = input_shape[-1]
+        self.W = self.add_weight(
+            shape=(input_dim, self.output_dim),
+            initializer="glorot_uniform",
+            trainable=True,
+            name="W"
+        )
 
     def call(self, X):
-        X = tf.matmul(self.adjacency_matrix, X)
-        return tf.matmul(X, self.W)
+        # 0. X must be in shape (batch, space points, features)
+        # 1. Then, you just need to multiply the two matrices, the features and the adjacency matrix (respectively: (batch, space points, features) and (space points, space points))
+        # 1.1. tf.matmul acts an automatic broadcast from (N,N) to (batch,N,F)
+        AX = tf.linalg.matmul(self.adjacency_matrix, X)
+        # 2. Then, multiply by the weights to relate them with the feature matrix multiplied by adjacency Matrix
+        AXW = tf.linalg.matmul(AX, self.W)
+        # 3. add the activation function, otherwise it would remain a simple linear model
+        if self.activation:
+            AXW = self.activation(AXW)
+        return AXW
+
 
 
