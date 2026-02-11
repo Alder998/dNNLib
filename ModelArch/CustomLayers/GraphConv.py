@@ -5,20 +5,28 @@ import tensorflow as tf
 # Class initialization upon keras layer.Layers class
 class GraphConv(tf.keras.layers.Layer):
 
-    def __init__(self, output_dim, adjacency_matrix, activation, **kwargs):
+    def __init__(self, units, adjacency_matrix, activation, **kwargs):
         super().__init__(**kwargs)
-        self.output_dim = output_dim
-        self.adjacency_matrix = tf.constant(adjacency_matrix)  # matrix has to be fixed with tf.constant
-        self.activation = activation
+        self.units = units
+        self.adjacency_matrix_np = adjacency_matrix  # matrix has to be fixed with tf.constant
+        self.activation = tf.keras.activations.get(activation)
 
     # Build function to add weights to the model
     def build(self, input_shape):
         input_dim = input_shape[-1]
         self.W = self.add_weight(
-            shape=(input_dim, self.output_dim),
+            shape=(input_dim, self.units),
             initializer="glorot_uniform",
             trainable=True,
             name="W"
+        )
+
+        # Adjacency Matrix needs to be a non-trainable Weight, and treated as such
+        self.adjacency_matrix = self.add_weight(
+            shape=self.adjacency_matrix_np.shape,
+            initializer=tf.constant_initializer(self.adjacency_matrix_np),
+            trainable=False,
+            name="adjacency_matrix"
         )
 
     def call(self, X):
@@ -32,6 +40,10 @@ class GraphConv(tf.keras.layers.Layer):
         if self.activation:
             AXW = self.activation(AXW)
         return AXW
+
+    # This function is REQUIRED to make it run
+    def compute_output_shape(self, input_shape):
+        return (input_shape[0], input_shape[1], self.units)
 
 
 

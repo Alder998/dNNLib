@@ -51,7 +51,7 @@ class ModelTraining:
                            metrics=['mse'])
 
         # 2. Train + add to the JSON for evaluation
-        self.model["model"].fit(features_train.transpose(1, 0, 2, 3), target_train.transpose(1, 0, 2), epochs=epochs, batch_size=batch_size, validation_split=validation_split)
+        self.model["model"].fit(features_train.transpose(0, 1, 3, 2), target_train, epochs=epochs, batch_size=batch_size, validation_split=validation_split)
         modelTrainingInfo["model"] = self.model["model"]
 
         # 3. Add all the prediction needed features to the model

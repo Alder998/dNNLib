@@ -127,7 +127,7 @@ class ModelPrediction:
                                                                                      split_method="random",
                                                                                      seasonal_splits=0,
                                                                                      prediction=True)
-        model_prediction = self.model["model"].predict(features_array)
+        model_prediction = self.model["model"].predict(features_array.transpose(0, 1, 3, 2))
 
         print("INFO - Model Prediction Shape: ", model_prediction.shape)
 

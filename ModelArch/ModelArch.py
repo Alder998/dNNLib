@@ -1,7 +1,10 @@
 """Class to create the Model Architecture according user params"""
 import tensorflow as tf
+from keras.src.layers import TimeDistributed, Flatten
 from tensorflow.keras import backend as K
 from ModelArch.CustomLayers import GraphConv as gnn
+from ModelArch.CustomLayers import TimeSpaceReshape as tsrh
+from ModelArch.CustomLayers import TimeSpaceRestore as tsrt
 
 class ModelArch:
 
@@ -83,7 +86,7 @@ class ModelArch:
                 # 1.3. Finally, add the FF layer to the model
                 def time_distributed(layer, x):
                     if len(x.shape) == 4:
-                        return tf.keras.layers.TimeDistributed(layer)(x)
+                            return tf.keras.layers.TimeDistributed(layer)(x)
                     return layer(x)
 
                 if mode == "functional":
@@ -104,7 +107,7 @@ class ModelArch:
             raise Exception("Mode " + str(mode) + " not recognised!")
 
     # Generalized method to create a Model with custom layers
-    def createModelArchitecture(self, dropout_FF=None, mode="sequential", features=None, adjacency_matrix=None):
+    def createModelArchitecture(self, dropout_FF=None, mode="sequential", features=None, adjacency_matrix=None, input_shape=(None, None, None, None)):
 
         # 0. Initialize tf model object
         if mode=="sequential":
@@ -123,14 +126,26 @@ class ModelArch:
 
         # Functional API implementation
         elif mode == "functional":
-            inputs = tf.keras.Input(shape=(None, 716, features))
+            inputs = tf.keras.Input(shape=input_shape)
             modelBuilder = inputs
 
+            previous=""
             if "GConv" in self.modelStructure.keys():
                 modelBuilder = self.createGraphConvLayer(modelBuilder=modelBuilder, mode=mode, adjacency_matrix=adjacency_matrix)
+                previous="GConv"
 
             if "LSTM" in self.modelStructure.keys():
+
+                if previous == "GConv":
+                    # Reshape after Gconv
+                    modelBuilder = tsrh.TimeSpaceReshape()(modelBuilder)
+
                 modelBuilder = self.createLSTMLayer(modelBuilder=modelBuilder, mode=mode)
+
+                if previous == "GConv":
+                    # Restore the dimensions with the custom layer to keep the space dimension
+                    modelBuilder = tsrt.TimeSpaceRestore(N=716, units=64)(modelBuilder)
+                    modelBuilder = tf.keras.layers.TimeDistributed(tf.keras.layers.Dense(1))(modelBuilder)  # (B, T, N, 1)
 
             if "FF" in self.modelStructure.keys():
                 modelBuilder = self.createFeedForwardLayer(modelBuilder=modelBuilder, mode=mode)
@@ -141,16 +156,21 @@ class ModelArch:
             raise Exception("Mode " + str(mode) + " not recognised!")
 
     # Super-generalized function to have a Regression Model
-    def createRegressionModelArchitecture(self, mode="sequential", dropout_FF=None, adjacency_matrix=None):
+    def createRegressionModelArchitecture(self, mode="sequential", dropout_FF=None, adjacency_matrix=None, input_shape=(None, None, None, None)):
 
         # Logging
         print("INFO - MODEL ARCHITECTURE: creating model Architecture for regression...")
         modelInfo = {}
-        modelBuilder, inputs = self.createModelArchitecture(mode=mode, dropout_FF=dropout_FF, adjacency_matrix=adjacency_matrix)
+        modelBuilder, inputs = self.createModelArchitecture(mode=mode, dropout_FF=dropout_FF, adjacency_matrix=adjacency_matrix, input_shape=input_shape)
         if mode=="sequential":
             modelBuilder.add(tf.keras.layers.Dense(1, activation='linear'))
         elif mode=="functional":
             outputs = tf.keras.layers.Dense(1, activation='linear')(modelBuilder)
+
+            # Add the Permute layer in case of time-space prediction
+            if ("GConv" in self.modelStructure.keys()) & ("LSTM" in self.modelStructure.keys()):
+                modelBuilder = tf.keras.layers.Permute((1, 3, 2))(modelBuilder)  # (B, T, 1, N)
+
             modelBuilder = tf.keras.Model(inputs=inputs, outputs=outputs)
         else:
             raise Exception("Mode " + str(mode) + " not recognised!")

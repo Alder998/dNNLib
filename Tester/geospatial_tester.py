@@ -10,18 +10,25 @@ from VectorModule import VectorModule as vector
 
 weatherData = data.Dataset().loadWeatherDataset()
 
-modelStructure = {"GNN": {"layers": [32, 32, 32], "activation": "relu", "kernel_size":(3, 3), "strides": (1, 1), "padding": "same", "pool_size": (2, 2)},
+# 0.0. Set the input
+modelStructure = {"GConv": {"layers": [32, 32, 32], "activation": "relu"},
+                  "LSTM": {"layers": [64, 64, 64, 64, 64], "activation": "tanh", "dropout": 0.0},
                   "FF": {"layers": [500, 500], "activation": "relu"}}
+space_variables = ["latitude", "longitude"]
+feature_variables = ["year","month","day","hour"]
+time_window = 24
+target_variables = "temperature"
 
 # 0. Create Adjacency Matrix
 adjacency_matrix = vector.VectorModule(modelStructure=modelStructure).createAdjacencyMatrixFromDataFrame(dataInDataFrameFormat=weatherData,
                                                                                                    target_variables="temperature",
-                                                                                                   space_variables=["latitude", "longitude"])
+                                                                                                   space_variables=space_variables)
 
 # 1. Create Model
 model = arch.ModelArch(modelStructure=modelStructure).createRegressionModelArchitecture(dropout_FF=0.2,
                                                                                         mode="functional",
-                                                                                        adjacency_matrix=adjacency_matrix)
+                                                                                        adjacency_matrix=adjacency_matrix,
+                                                                                        input_shape=(time_window, adjacency_matrix.shape[0], len(feature_variables)))
 
 # 2. Train Model
 trained_model = train.ModelTraining(model=model).trainGeospatialModel(dataInDataFrameFormat=weatherData,
