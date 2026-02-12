@@ -129,6 +129,9 @@ class ModelPrediction:
                                                                                      prediction=True)
         model_prediction = self.model["model"].predict(features_array.transpose(0, 1, 3, 2))
 
-        print("INFO - Model Prediction Shape: ", model_prediction.shape)
+        # Create a DataFrame + populate Axis with time and space variables
+        model_prediction_df = pd.DataFrame(np.squeeze(np.squeeze(model_prediction, axis=3), axis=0)).T
+        model_prediction_df = model_prediction_df.set_index(pd.Series(unique_spaceVar.unique()))
+        model_prediction_df = model_prediction_df.set_axis(pd.Series(timeSpaceDataFrame["Date"].unique()), axis=1)
 
-        return model_prediction
+        return model_prediction_df

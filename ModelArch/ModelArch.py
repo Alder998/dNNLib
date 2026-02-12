@@ -107,7 +107,7 @@ class ModelArch:
             raise Exception("Mode " + str(mode) + " not recognised!")
 
     # Generalized method to create a Model with custom layers
-    def createModelArchitecture(self, dropout_FF=None, mode="sequential", features=None, adjacency_matrix=None, input_shape=(None, None, None, None)):
+    def createModelArchitecture(self, dropout_FF=None, mode="sequential", adjacency_matrix=None, input_shape=(None, None, None, None)):
 
         # 0. Initialize tf model object
         if mode=="sequential":
@@ -144,7 +144,7 @@ class ModelArch:
 
                 if previous == "GConv":
                     # Restore the dimensions with the custom layer to keep the space dimension
-                    modelBuilder = tsrt.TimeSpaceRestore(N=716, units=64)(modelBuilder)
+                    modelBuilder = tsrt.TimeSpaceRestore(N=input_shape[1])(modelBuilder)
                     modelBuilder = tf.keras.layers.TimeDistributed(tf.keras.layers.Dense(1))(modelBuilder)  # (B, T, N, 1)
 
             if "FF" in self.modelStructure.keys():

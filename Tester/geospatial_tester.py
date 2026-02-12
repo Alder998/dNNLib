@@ -15,13 +15,15 @@ modelStructure = {"GConv": {"layers": [32, 32, 32], "activation": "relu"},
                   "LSTM": {"layers": [64, 64, 64, 64, 64], "activation": "tanh", "dropout": 0.0},
                   "FF": {"layers": [500, 500], "activation": "relu"}}
 space_variables = ["latitude", "longitude"]
-feature_variables = ["year","month","day","hour"]
-time_window = 24
+feature_variables = ["day","hour"]   # "year","month","day","hour"
+time_window = 96
 target_variables = "temperature"
+steps_ahead=20
+date_column="date"
 
 # 0. Create Adjacency Matrix
 adjacency_matrix = vector.VectorModule(modelStructure=modelStructure).createAdjacencyMatrixFromDataFrame(dataInDataFrameFormat=weatherData,
-                                                                                                   target_variables="temperature",
+                                                                                                   target_variables=target_variables,
                                                                                                    space_variables=space_variables)
 
 # 1. Create Model
@@ -32,22 +34,25 @@ model = arch.ModelArch(modelStructure=modelStructure).createRegressionModelArchi
 
 # 2. Train Model
 trained_model = train.ModelTraining(model=model).trainGeospatialModel(dataInDataFrameFormat=weatherData,
-                                                                      feature_variables=["year","month","day","hour"],
-                                                                      space_variables=["latitude", "longitude"],
-                                                                      target_variables="temperature",
+                                                                      feature_variables=feature_variables,
+                                                                      space_variables=space_variables,
+                                                                      target_variables=target_variables,
                                                                       standardize=False,
-                                                                      split_method="seasonal-time-series",
+                                                                      split_method="time-series",
                                                                       seasonal_splits=12,
-                                                                      time_window=24,
+                                                                      time_window=time_window,
                                                                       test_size=0.30,
                                                                       batch_size=32,
                                                                       validation_split=0.2,
-                                                                      epochs=10)
+                                                                      epochs=200)
 # 2. Evaluate Model
-evaluation = eval.ModelEvaluation(model=trained_model).evaluateModelPerformance()
+evaluation = eval.ModelEvaluation(model=trained_model).evaluateModelPerformance(time_space=True)
 
 # 3. Predict the future
 prediction_dataset = pred.ModelPrediction(model=trained_model).predictGeoSpatialWithTrainedModel(dataInDataFrameFormat=weatherData,
-                                                                                                 steps_ahead=20,
+                                                                                                 steps_ahead=steps_ahead,
                                                                                                  frequency="1h",
-                                                                                                 date_column="date")
+                                                                                                 date_column=date_column)
+
+print(prediction_dataset)
+prediction_dataset.to_excel(r"C:\Users\alder\Downloads\first_geospace.xlsx")

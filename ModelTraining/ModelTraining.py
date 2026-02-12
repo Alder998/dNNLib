@@ -1,6 +1,5 @@
 """Class to train the model that has been built before, according to training params from user"""
 
-import tensorflow as tf
 from VectorModule import VectorModule as vector
 
 class ModelTraining:

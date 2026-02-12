@@ -3,10 +3,9 @@
 import tensorflow as tf
 
 class TimeSpaceRestore(tf.keras.layers.Layer):
-    def __init__(self, N, units):
+    def __init__(self, N):
         super().__init__()
         self.N = N
-        self.units = units
 
     def call(self, x):
         # x: (B*N, T, units)
@@ -17,5 +16,5 @@ class TimeSpaceRestore(tf.keras.layers.Layer):
         B = BN // self.N
 
         x = tf.reshape(x, (B, self.N, T, U))   # (B, N, T, U)
-        x = tf.transpose(x, (0, 2, 1, 3))      # (B, T, N, U)            # (B, T, N, U)
+        x = tf.transpose(x, (0, 2, 1, 3))      # (B, T, N, U)
         return x
