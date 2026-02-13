@@ -15,12 +15,12 @@ ren_prod_italy = data.Dataset().getItalyEnergyProductionDataset(freq=dataset_fre
 # 48: 0.5 days | 96: 1 day | 192 : 2 days | 288: 3 days | 480: 5 days | 672: 7 days | 960: 10 days | 1920: 20 days
 time_window = 96
 steps_ahead = 96
-var_to_predict = "Thermal"  # 'Wind', 'Geothermal', 'Hydro', 'Photovoltaic', 'Biomass', 'Thermal', 'Self-consumption'
+var_to_predict = "Hydro"  # 'Wind', 'Geothermal', 'Hydro', 'Photovoltaic', 'Biomass', 'Thermal', 'Self-consumption'
 model_name = var_to_predict.lower() + "_prediction_" + dataset_freq
 
 # 0. Build the model
-model = arch.ModelArch(modelStructure={"LSTM": {"layers": [64, 64, 64, 64, 64], "activation": "tanh", "dropout": 0.0},
-                                       "FF": {"layers": [500, 500], "activation": "relu"}}).createRegressionModelArchitecture(mode="sequential", dropout_FF=0.2)
+model = arch.ModelArch(modelStructure={"LSTM": {"layers": [128, 64], "activation": "tanh", "dropout": 0.0},
+                                       "FF": {"layers": [200, 200], "activation": "relu"}}).createRegressionModelArchitecture(mode="sequential", dropout_FF=0.2)
 
 # 1. Compile and train
 trained_model = train.ModelTraining(model=model).trainModel(dataInDataFrameFormat=ren_prod_italy,

@@ -4,6 +4,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.neighbors import kneighbors_graph
+from sklearn.metrics.pairwise import euclidean_distances
 import pandas as pd
 
 class VectorModule:
@@ -211,27 +212,58 @@ class VectorModule:
             return features_array, target_array, feature_scaler, target_scaler
 
     # Utils-like function to create the Adjacency Matrix from a DataFrame
-    def createAdjacencyMatrixFromDataFrame (self, dataInDataFrameFormat, space_variables, target_variables):
+    def createAdjacencyMatrixFromDataFrame (self, dataInDataFrameFormat, space_variables, target_variables, k=8,
+                                                  alpha=0.5, sigma_space=None, sigma_time=None):
 
-        # 0. Create a unique column for the coordinates
+        # 0. find the Unique Coords
+        data_grouped = dataInDataFrameFormat.groupby(space_variables, as_index=False).mean()
+        coords = data_grouped[space_variables].values
+        N = coords.shape[0]
+
+        # 1. Compute Spatial adjacency
+        dist = euclidean_distances(coords, coords)
+        # 1.2. Add a sigma for space
+        if sigma_space is None:
+            sigma_space = np.std(dist)
+        A_space = np.exp(-(dist ** 2) / (2 * sigma_space ** 2))
+
+        # Keep only k nearest neighbors
+        for i in range(N):
+            idx = np.argsort(dist[i])[k + 1:]
+            A_space[i, idx] = 0
+
+        # 2. Temporal correlation Adjacency
+        # 2.0. Isolate single time-series for each coord
         space_col = "_".join(space_variables) if len(space_variables) > 1 else space_variables[0]
         dataInDataFrameFormat[space_col] = dataInDataFrameFormat[space_variables].astype(str).agg("_".join, axis=1) if len(space_variables) > 1 else dataInDataFrameFormat[space_variables[0]]
-        # 0.1. Select the columns of interest within the DataFrame
-        dataInDataFrameFormat = dataInDataFrameFormat[[space_col, target_variables]]
+        # 2.1. Create the temporal matrix with shape: (Observations, N)
+        temp_matrix = []
+        for singleCoord in dataInDataFrameFormat[space_col].unique():
+            dfc = dataInDataFrameFormat[target_variables][dataInDataFrameFormat[space_col]==singleCoord].reset_index(drop=True)
+            temp_matrix.append(np.array(dfc))
+        temp_matrix = np.stack(temp_matrix, axis=1)
 
-        # MOMENTARY -- Mean to achieve the dimension for the matrix
-        data_grouped = dataInDataFrameFormat.groupby(space_col, as_index=False).mean()
+        # 2.2. Compute correlation
+        corr = np.corrcoef(temp_matrix.T)  # (N, N)
+        # 2.3. Remove negative correlations
+        corr[corr < 0] = 0
+        # 2.4. Add sigma for time if necessary
+        if sigma_time is None:
+            sigma_time = np.std(corr)
+        A_time = np.exp(-(1 - corr) ** 2 / (2 * sigma_time ** 2))
 
-        # MOMENTARY -- KNN on mean data
-        data_grouped[space_variables] = (data_grouped[space_col].str.split('_', expand=True).astype(float))
-        A_sparse = kneighbors_graph(data_grouped.drop(columns=space_col).values, n_neighbors=3, mode='connectivity', include_self=False)
-        A = A_sparse.toarray()
+        # 3. Optional sparsification
+        for i in range(N):
+            idx = np.argsort(A_time[i])[k + 1:]
+            A_time[i, idx] = 0
+
+        # 4. Combine Space + Time
+        A = alpha * A_space + (1 - alpha) * A_time
 
         return self.normalize_adjacency(A)
 
     # Function to standardize adjacency Matrix
     def normalize_adjacency(self, A):
-        import numpy as np
         A = A + np.eye(A.shape[0])
         D = np.diag(np.sum(A, axis=1))
         D_inv_sqrt = np.linalg.inv(np.sqrt(D))

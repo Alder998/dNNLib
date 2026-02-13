@@ -11,11 +11,11 @@ from VectorModule import VectorModule as vector
 weatherData = data.Dataset().loadWeatherDataset()
 
 # 0.0. Set the input
-modelStructure = {"GConv": {"layers": [32, 32, 32], "activation": "relu"},
-                  "LSTM": {"layers": [64, 64, 64, 64, 64], "activation": "tanh", "dropout": 0.0},
-                  "FF": {"layers": [500, 500], "activation": "relu"}}
+modelStructure = {"GConv": {"layers": [32], "activation": "relu"},
+                  "LSTM": {"layers": [128, 64], "activation": "tanh", "dropout": 0.0},
+                  "FF": {"layers": [200, 200], "activation": "relu"}}
 space_variables = ["latitude", "longitude"]
-feature_variables = ["day","hour"]   # "year","month","day","hour"
+feature_variables = ["month","day","hour"]   # "year","month","day","hour"
 time_window = 96
 target_variables = "temperature"
 steps_ahead=20
@@ -23,8 +23,12 @@ date_column="date"
 
 # 0. Create Adjacency Matrix
 adjacency_matrix = vector.VectorModule(modelStructure=modelStructure).createAdjacencyMatrixFromDataFrame(dataInDataFrameFormat=weatherData,
-                                                                                                   target_variables=target_variables,
-                                                                                                   space_variables=space_variables)
+                                                                                                         target_variables=target_variables,
+                                                                                                         space_variables=space_variables,
+                                                                                                         k=12,
+                                                                                                         alpha=0.5,
+                                                                                                         sigma_space=None,
+                                                                                                         sigma_time=None)
 
 # 1. Create Model
 model = arch.ModelArch(modelStructure=modelStructure).createRegressionModelArchitecture(dropout_FF=0.2,
@@ -44,7 +48,7 @@ trained_model = train.ModelTraining(model=model).trainGeospatialModel(dataInData
                                                                       test_size=0.30,
                                                                       batch_size=32,
                                                                       validation_split=0.2,
-                                                                      epochs=200)
+                                                                      epochs=30)
 # 2. Evaluate Model
 evaluation = eval.ModelEvaluation(model=trained_model).evaluateModelPerformance(time_space=True)
 
@@ -54,5 +58,9 @@ prediction_dataset = pred.ModelPrediction(model=trained_model).predictGeoSpatial
                                                                                                  frequency="1h",
                                                                                                  date_column=date_column)
 
-print(prediction_dataset)
 prediction_dataset.to_excel(r"C:\Users\alder\Downloads\first_geospace.xlsx")
+
+# 4. Save Model Weights
+ms.ModelSaving(model=trained_model).saveModelWeights(save_dir="D:\\PythonProjects-Storage\\dNNLib\\Tester\\stored_models",
+                                                     model_name="geospace_model")
+
