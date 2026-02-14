@@ -134,4 +134,21 @@ class ModelPrediction:
         model_prediction_df = model_prediction_df.set_index(pd.Series(unique_spaceVar.unique()))
         model_prediction_df = model_prediction_df.set_axis(pd.Series(timeSpaceDataFrame["Date"].unique()), axis=1)
 
-        return model_prediction_df
+        # Create Latitude + Longitude columns + "pile" the coordinates on axis=0
+        dataPiled = []
+        for singleValue in model_prediction_df.index:
+            dfc = model_prediction_df[model_prediction_df.index == singleValue].T
+            dfc["singleCoord"] = singleValue
+            dfc = dfc.reset_index()
+            dfc = dfc.rename(columns={singleValue: self.model["var_to_predict"]}).rename(columns={"index": "date"})
+            dataPiled.append(dfc)
+        dataPiled = pd.concat([df for df in dataPiled], axis=0).reset_index(drop=True)
+
+        dataPiled["latitude"] = dataPiled["singleCoord"].str.split("_").str[0].astype(float)
+        dataPiled["longitude"] = dataPiled["singleCoord"].str.split("_").str[1].astype(float)
+        dataPiled = dataPiled.drop(columns=["singleCoord"])
+        dataPiled = dataPiled.reset_index(drop=True)
+        # Re-order
+        dataPiled = dataPiled[["date", "latitude", "longitude", self.model["var_to_predict"]]]
+
+        return dataPiled

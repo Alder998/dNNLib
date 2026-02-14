@@ -48,7 +48,7 @@ trained_model = train.ModelTraining(model=model).trainGeospatialModel(dataInData
                                                                       test_size=0.30,
                                                                       batch_size=32,
                                                                       validation_split=0.2,
-                                                                      epochs=150)
+                                                                      epochs=20)
 # 2. Evaluate Model
 evaluation = eval.ModelEvaluation(model=trained_model).evaluateModelPerformance(time_space=True)
 
@@ -58,7 +58,7 @@ prediction_dataset = pred.ModelPrediction(model=trained_model).predictGeoSpatial
                                                                                                  frequency="1h",
                                                                                                  date_column=date_column)
 
-prediction_dataset.to_excel(r"C:\Users\alder\Downloads\first_geospace.xlsx")
+prediction_dataset.to_excel(r"C:\Users\alder\Downloads\first_geospace.xlsx", index=False)
 
 # 4. Save Model Weights
 ms.ModelSaving(model=trained_model).saveModelWeights(save_dir="D:\\PythonProjects-Storage\\dNNLib\\Tester\\stored_models",
