@@ -11,7 +11,7 @@ from VectorModule import VectorModule as vector
 weatherData = data.Dataset().loadWeatherDataset()
 
 # 0.0. Set the input
-modelStructure = {"GConv": {"layers": [32], "activation": "relu"},
+modelStructure = {"GConv": {"layers": [32], "activation": "relu", "residual_output_shape": 1},
                   "LSTM": {"layers": [128, 64], "activation": "tanh", "dropout": 0.0},
                   "FF": {"layers": [200, 200], "activation": "relu"}}
 space_variables = ["latitude", "longitude"]
@@ -48,7 +48,7 @@ trained_model = train.ModelTraining(model=model).trainGeospatialModel(dataInData
                                                                       test_size=0.30,
                                                                       batch_size=32,
                                                                       validation_split=0.2,
-                                                                      epochs=30)
+                                                                      epochs=150)
 # 2. Evaluate Model
 evaluation = eval.ModelEvaluation(model=trained_model).evaluateModelPerformance(time_space=True)
 
