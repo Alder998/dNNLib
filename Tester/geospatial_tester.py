@@ -7,6 +7,7 @@ from ModelEvaluation import ModelEvaluation as eval
 from ModelPrediction import ModelPrediction as pred
 from ModelSaving import ModelSaving as ms
 from VectorModule import VectorModule as vector
+from UtilsService import Plots as plot
 
 weatherData = data.Dataset().loadWeatherDataset()
 
@@ -48,7 +49,7 @@ trained_model = train.ModelTraining(model=model).trainGeospatialModel(dataInData
                                                                       test_size=0.30,
                                                                       batch_size=32,
                                                                       validation_split=0.2,
-                                                                      epochs=20)
+                                                                      epochs=120)
 # 2. Evaluate Model
 evaluation = eval.ModelEvaluation(model=trained_model).evaluateModelPerformance(time_space=True)
 
@@ -64,3 +65,9 @@ prediction_dataset.to_excel(r"C:\Users\alder\Downloads\first_geospace.xlsx", ind
 ms.ModelSaving(model=trained_model).saveModelWeights(save_dir="D:\\PythonProjects-Storage\\dNNLib\\Tester\\stored_models",
                                                      model_name="geospace_model")
 
+# 5. Plot prediction
+plot.Plots().plotGeospacePredictionFixedGrid(prediction_dataset=prediction_dataset,
+                                             variable=target_variables,
+                                             date_column=date_column,
+                                             colorScale="rainbow",
+                                             savePath="C:\\Users\\alder\\Downloads\\prediction_heatmap.gif")
