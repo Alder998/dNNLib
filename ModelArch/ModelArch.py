@@ -1,8 +1,8 @@
 """Class to create the Model Architecture according user params"""
 import tensorflow as tf
-from keras.src.layers import TimeDistributed, Flatten
 from tensorflow.keras import backend as K
 from ModelArch.CustomLayers import GraphConv as gnn
+from ModelArch.CustomLayers import GraphGRU as gru
 from ModelArch.CustomLayers import TimeSpaceReshape as tsrh
 from ModelArch.CustomLayers import TimeSpaceRestore as tsrt
 
@@ -83,7 +83,7 @@ class ModelArch:
                 layerGConv = gnn.GraphConv(unitsGConv,
                                            adjacency_matrix,
                                            self.modelStructure['GConv']["activation"])
-                # 1.3. Finally, add the FF layer to the model
+                # 1.3. Finally, include the time distributed into the created layer
                 def time_distributed(layer, x):
                     if len(x.shape) == 4:
                             return tf.keras.layers.TimeDistributed(layer)(x)
@@ -94,6 +94,34 @@ class ModelArch:
 
                 elif mode == "sequential":
                     model.add(layerGConv)
+                else:
+                    raise Exception("Mode " + str(mode) + " not recognised!")
+
+        # 2. Add option for Bidirectional Layer
+
+        if mode == "functional":
+            return modelBuilder
+        elif mode == "sequential":
+            return model
+        else:
+            raise Exception("Mode " + str(mode) + " not recognised!")
+
+    # Function to create a GraphConv Layer with TensorFlowService
+    def createGraphGRULayer(self, model=None, modelBuilder=None, mode="sequential", adjacency_matrix=None):
+
+        # 1. Iterate for the GConv layers specified by the user
+        if 'GraphGRU' in self.modelStructure.keys():
+            for l in range(len(self.modelStructure['GraphGRU']["layers"])):
+                # 1.1. extract the LSTM units and the nodes for each one of the layer
+                unitsGRU = self.modelStructure['GraphGRU']["layers"][l]
+                layerGRU = gru.GraphGRU(unitsGRU,
+                                        adjacency_matrix,
+                                        self.modelStructure['GraphGRU']["activation"])
+                if mode == "functional":
+                    modelBuilder = layerGRU(modelBuilder)
+
+                elif mode == "sequential":
+                    model.add(layerGRU)
                 else:
                     raise Exception("Mode " + str(mode) + " not recognised!")
 
@@ -133,6 +161,10 @@ class ModelArch:
             if "GConv" in self.modelStructure.keys():
                 modelBuilder = self.createGraphConvLayer(modelBuilder=modelBuilder, mode=mode, adjacency_matrix=adjacency_matrix)
                 previous="GConv"
+
+            if 'GraphGRU' in self.modelStructure.keys():
+                modelBuilder = self.createGraphGRULayer(modelBuilder=modelBuilder, mode=mode, adjacency_matrix=adjacency_matrix)
+                previous="GraphGRU"
 
             if "LSTM" in self.modelStructure.keys():
 
