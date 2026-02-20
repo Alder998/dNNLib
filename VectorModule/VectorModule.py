@@ -212,55 +212,29 @@ class VectorModule:
             return features_array, target_array, feature_scaler, target_scaler
 
     # Utils-like function to create the Adjacency Matrix from a DataFrame
-    def createAdjacencyMatrixFromDataFrame (self, dataInDataFrameFormat, space_variables, target_variables, k=8,
-                                                  alpha=0.5, sigma_space=None, sigma_time=None):
+    def createAdjacencyMatrixFromDataFrame (self, dataInDataFrameFormat, space_variables, target_variables, sigma=None):
 
-        # 0. find the Unique Coords
-        data_grouped = dataInDataFrameFormat.groupby(space_variables, as_index=False).mean()
-        coords = data_grouped[space_variables].values
-        N = coords.shape[0]
-
-        # 1. Compute Spatial adjacency
-        dist = euclidean_distances(coords, coords)
-        # 1.2. Add a sigma for space
-        if sigma_space is None:
-            sigma_space = np.std(dist)
-        A_space = np.exp(-(dist ** 2) / (2 * sigma_space ** 2))
-
-        # Keep only k nearest neighbors
-        for i in range(N):
-            idx = np.argsort(dist[i])[k + 1:]
-            A_space[i, idx] = 0
-
-        # 2. Temporal correlation Adjacency
-        # 2.0. Isolate single time-series for each coord
+        # 0. Very primitive Adjacency Matrix - mean of the target variable difference (standardized)
         space_col = "_".join(space_variables) if len(space_variables) > 1 else space_variables[0]
         dataInDataFrameFormat[space_col] = dataInDataFrameFormat[space_variables].astype(str).agg("_".join, axis=1) if len(space_variables) > 1 else dataInDataFrameFormat[space_variables[0]]
-        # 2.1. Create the temporal matrix with shape: (Observations, N)
-        temp_matrix = []
-        for singleCoord in dataInDataFrameFormat[space_col].unique():
-            dfc = dataInDataFrameFormat[target_variables][dataInDataFrameFormat[space_col]==singleCoord].reset_index(drop=True)
-            temp_matrix.append(np.array(dfc))
-        temp_matrix = np.stack(temp_matrix, axis=1)
 
-        # 2.2. Compute correlation
-        corr = np.corrcoef(temp_matrix.T)  # (N, N)
-        # 2.3. Remove negative correlations
-        corr[corr < 0] = 0
-        # 2.4. Add sigma for time if necessary
-        if sigma_time is None:
-            sigma_time = np.std(corr)
-        A_time = np.exp(-(1 - corr) ** 2 / (2 * sigma_time ** 2))
+        # 1. Group data by mean
+        data_grouped = dataInDataFrameFormat[[space_col, target_variables]].groupby(space_col, as_index=False).mean()
+        data_grouped = data_grouped[target_variables].values.astype(float)
+        diff_matrix = data_grouped[None, :] - data_grouped[:, None]
+        dist2 = diff_matrix ** 2
+        if sigma is None:
+            sigma = np.std(data_grouped)
+        A = np.exp(-dist2 / (sigma ** 2))
 
-        # 3. Optional sparsification
-        for i in range(N):
-            idx = np.argsort(A_time[i])[k + 1:]
-            A_time[i, idx] = 0
+        # Fill diagonal with 0
+        A = self.normalize_adjacency(A)
+        np.fill_diagonal(A, 0)
 
-        # 4. Combine Space + Time
-        A = alpha * A_space + (1 - alpha) * A_time
+        # Show the density of adjacency matrix
+        print("ADJACENCY MATRIX - Density: " + str(round((np.count_nonzero(A) / A.size) * 100, 2)) + " %")
 
-        return self.normalize_adjacency(A)
+        return A
 
     # Function to standardize adjacency Matrix
     def normalize_adjacency(self, A):

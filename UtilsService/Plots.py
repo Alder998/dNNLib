@@ -84,7 +84,7 @@ class Plots:
         ani = FuncAnimation(fig, update, frames=len(time_steps), interval=300)
 
         if savePath is not None:
-            ani.save(r"C:\Users\alder\Downloads\prediction_heatmap_with_mean.gif",
+            ani.save(savePath,
                      writer="pillow", fps=5)
         # Show Plot
         plt.show()

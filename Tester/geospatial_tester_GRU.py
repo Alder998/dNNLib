@@ -16,7 +16,7 @@ modelStructure = {"GraphGRU": {"layers": [64], "activation": "tanh"}}
 space_variables = ["latitude", "longitude"]
 feature_variables = ["month","day","hour"]   # "year","month","day","hour"
 time_window = 96
-target_variables = "temperature"
+target_variables = "temperature"   #'temperature' | 'precipitation' | 'windSpeed' | 'humidity_mean' | 'cloudCover' | 'pressure_msl'
 steps_ahead=20
 date_column="date"
 
@@ -24,10 +24,7 @@ date_column="date"
 adjacency_matrix = vector.VectorModule(modelStructure=modelStructure).createAdjacencyMatrixFromDataFrame(dataInDataFrameFormat=weatherData,
                                                                                                          target_variables=target_variables,
                                                                                                          space_variables=space_variables,
-                                                                                                         k=12,
-                                                                                                         alpha=0.5,
-                                                                                                         sigma_space=None,
-                                                                                                         sigma_time=None)
+                                                                                                         sigma=None)
 
 # 1. Create Model
 model = arch.ModelArch(modelStructure=modelStructure).createRegressionModelArchitecture(dropout_FF=0.2,
@@ -42,12 +39,12 @@ trained_model = train.ModelTraining(model=model).trainGeospatialModel(dataInData
                                                                       target_variables=target_variables,
                                                                       standardize=False,
                                                                       split_method="time-series",
-                                                                      seasonal_splits=12,
+                                                                      seasonal_splits=4,
                                                                       time_window=time_window,
                                                                       test_size=0.30,
                                                                       batch_size=32,
                                                                       validation_split=0.2,
-                                                                      epochs=200)
+                                                                      epochs=250)
 # 2. Evaluate Model
 evaluation = eval.ModelEvaluation(model=trained_model).evaluateModelPerformance(time_space=True)
 
@@ -68,4 +65,4 @@ plot.Plots().plotGeospacePredictionFixedGrid(prediction_dataset=prediction_datas
                                              variable=target_variables,
                                              date_column=date_column,
                                              colorScale="rainbow",
-                                             savePath="C:\\Users\\alder\\Downloads\\prediction_heatmap_gru.gif")
+                                             savePath="C:\\Users\\alder\\Downloads\\prediction_heatmap_gru_" + target_variables + ".gif")
