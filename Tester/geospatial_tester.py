@@ -18,7 +18,7 @@ modelStructure = {"GConv": {"layers": [32], "activation": "relu", "residual_outp
 space_variables = ["latitude", "longitude"]
 feature_variables = ["month","day","hour"]   # "year","month","day","hour"
 time_window = 96
-target_variables = "temperature"
+target_variables = "temperature"  #'temperature' | 'precipitation' | 'windSpeed' | 'humidity_mean' | 'cloudCover' | 'pressure_msl'
 steps_ahead=20
 date_column="date"
 
@@ -26,10 +26,8 @@ date_column="date"
 adjacency_matrix = vector.VectorModule(modelStructure=modelStructure).createAdjacencyMatrixFromDataFrame(dataInDataFrameFormat=weatherData,
                                                                                                          target_variables=target_variables,
                                                                                                          space_variables=space_variables,
-                                                                                                         k=12,
-                                                                                                         alpha=0.5,
-                                                                                                         sigma_space=None,
-                                                                                                         sigma_time=None)
+                                                                                                         sigma=None)
+
 
 # 1. Create Model
 model = arch.ModelArch(modelStructure=modelStructure).createRegressionModelArchitecture(dropout_FF=0.2,
@@ -70,4 +68,4 @@ plot.Plots().plotGeospacePredictionFixedGrid(prediction_dataset=prediction_datas
                                              variable=target_variables,
                                              date_column=date_column,
                                              colorScale="rainbow",
-                                             savePath="C:\\Users\\alder\\Downloads\\prediction_heatmap.gif")
+                                             savePath="C:\\Users\\alder\\Downloads\\prediction_heatmap_" + target_variables + ".gif")

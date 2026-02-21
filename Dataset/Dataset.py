@@ -33,10 +33,15 @@ class Dataset:
 
         return energy_prod_italy
 
-    def loadWeatherDataset (self):
+    def loadWeatherDataset (self, size="1m"):
 
         # 0.0. Load the .csv data
-        wdata = pd.read_csv("C:\\Users\\alder\\Downloads\\1m_weather.xlsx")
+        if size=="1m":
+            wdata = pd.read_csv("C:\\Users\\alder\\Downloads\\1m_weather.xlsx")
+        elif size=="3m":
+            wdata = pd.read_csv("C:\\Users\\alder\\Downloads\\3m_weather.csv")
+        else:
+            raise Exception("Size " + str(size) + " is not supported.")
 
         # 0.1. Convert the date columns to datetime
         wdata["date"] = pd.to_datetime(wdata["date"])
