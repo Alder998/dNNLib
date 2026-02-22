@@ -9,12 +9,12 @@ from ModelSaving import ModelSaving as ms
 from VectorModule import VectorModule as vector
 from UtilsService import Plots as plot
 
-weatherData = data.Dataset().loadWeatherDataset(size="3m")
+weatherData = data.Dataset().loadWeatherDataset(size="1m")
 
 # 0.0. Set the input
 modelStructure = {"GraphGRU": {"layers": [64], "activation": "tanh"}}
 space_variables = ["latitude", "longitude"]
-feature_variables = ["year","month","day","hour"]   # "year","month","day","hour"
+feature_variables = ["month","day","hour"]   # "year","month","day","hour"
 time_window = 96
 target_variables = "temperature"   #'temperature' | 'precipitation' | 'windSpeed' | 'humidity_mean' | 'cloudCover' | 'pressure_msl'
 steps_ahead=20
@@ -44,7 +44,7 @@ trained_model = train.ModelTraining(model=model).trainGeospatialModel(dataInData
                                                                       test_size=0.30,
                                                                       batch_size=32,
                                                                       validation_split=0.2,
-                                                                      epochs=50)
+                                                                      epochs=300)
 # 2. Evaluate Model
 evaluation = eval.ModelEvaluation(model=trained_model).evaluateModelPerformance(time_space=True)
 

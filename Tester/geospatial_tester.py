@@ -9,7 +9,7 @@ from ModelSaving import ModelSaving as ms
 from VectorModule import VectorModule as vector
 from UtilsService import Plots as plot
 
-weatherData = data.Dataset().loadWeatherDataset()
+weatherData = data.Dataset().loadWeatherDataset(size="3m")
 
 # 0.0. Set the input
 modelStructure = {"GConv": {"layers": [32], "activation": "relu", "residual_output_shape": 1},

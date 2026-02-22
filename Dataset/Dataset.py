@@ -40,6 +40,8 @@ class Dataset:
             wdata = pd.read_csv("C:\\Users\\alder\\Downloads\\1m_weather.xlsx")
         elif size=="3m":
             wdata = pd.read_csv("C:\\Users\\alder\\Downloads\\3m_weather.csv")
+        elif size=="1y":
+            wdata = pd.read_csv("C:\\Users\\alder\\Downloads\\1y_weather.csv")
         else:
             raise Exception("Size " + str(size) + " is not supported.")
 

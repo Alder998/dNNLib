@@ -56,7 +56,7 @@ class VectorModule:
                                                                                         random_state=1893)
         # 2.1. implement a split for time-series (only first % is train, the rest is test)
         elif split_method == "time-series":
-            train_index = int(features_array.shape[0] * test_size)
+            train_index = int(features_array.shape[0] * (1-test_size))
             features_train = features_array[0:train_index]
             features_test = features_array[train_index:]
             target_train = target_array[0:train_index]

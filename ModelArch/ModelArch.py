@@ -5,6 +5,7 @@ from ModelArch.CustomLayers import GraphConv as gnn
 from ModelArch.CustomLayers import GraphGRU as gru
 from ModelArch.CustomLayers import TimeSpaceReshape as tsrh
 from ModelArch.CustomLayers import TimeSpaceRestore as tsrt
+from ModelArch.CustomLayers import PeriodicConv1D as pc
 
 class ModelArch:
 
@@ -134,6 +135,33 @@ class ModelArch:
         else:
             raise Exception("Mode " + str(mode) + " not recognised!")
 
+    # Function to create a Conv1D layer gated Layer with TensorFlowService
+    def createConv1DGatedLayer (self, model=None, modelBuilder=None, mode="sequential"):
+
+        # 1. Iterate for the GConv layers specified by the user
+        if 'Conv1DGated' in self.modelStructure.keys():
+            for l in range(len(self.modelStructure['Conv1DGated']["layers"])):
+
+                unitsPC = self.modelStructure['Conv1DGated']["layers"][l]
+
+                conv_layer = pc.SeasonalGatedConv1D(
+                    units=unitsPC,
+                    kernel_size=self.modelStructure['Conv1DGated']["kernel_size"]
+                )
+
+                if mode == "functional":
+                    modelBuilder = conv_layer(modelBuilder)
+
+                elif mode == "sequential":
+                    model.add(conv_layer)
+
+        if mode == "functional":
+            return modelBuilder
+        elif mode == "sequential":
+            return model
+        else:
+            raise Exception("Mode " + str(mode) + " not recognised!")
+
     # Generalized method to create a Model with custom layers
     def createModelArchitecture(self, dropout_FF=None, mode="sequential", adjacency_matrix=None, input_shape=(None, None, None, None)):
 
@@ -166,6 +194,10 @@ class ModelArch:
                 modelBuilder = self.createGraphGRULayer(modelBuilder=modelBuilder, mode=mode, adjacency_matrix=adjacency_matrix)
                 previous="GraphGRU"
 
+            if "Conv1DGated" in self.modelStructure.keys():
+                modelBuilder = self.createConv1DGatedLayer(modelBuilder=modelBuilder, mode=mode)
+                previous="Conv1DGated"
+
             if "LSTM" in self.modelStructure.keys():
 
                 if previous == "GConv":
@@ -197,7 +229,6 @@ class ModelArch:
 
                         # Sum the residual to the model
                         modelBuilder = tf.keras.layers.Add()([modelBuilder, node_bias])
-
 
             if "FF" in self.modelStructure.keys():
                 modelBuilder = self.createFeedForwardLayer(modelBuilder=modelBuilder, mode=mode)
