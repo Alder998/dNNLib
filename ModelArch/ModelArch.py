@@ -5,7 +5,8 @@ from ModelArch.CustomLayers import GraphConv as gnn
 from ModelArch.CustomLayers import GraphGRU as gru
 from ModelArch.CustomLayers import TimeSpaceReshape as tsrh
 from ModelArch.CustomLayers import TimeSpaceRestore as tsrt
-from ModelArch.CustomLayers import PeriodicConv1D as pc
+from ModelArch.CustomLayers import SeasonalGatedConv1D as pc
+from ModelArch.CustomLayers import MultiSeasonConv1D as mpc
 
 class ModelArch:
 
@@ -162,6 +163,35 @@ class ModelArch:
         else:
             raise Exception("Mode " + str(mode) + " not recognised!")
 
+    # Function to add a multi season Conv1D layer
+    def createMultiSeasonConv1DGatedLayer (self, model=None, modelBuilder=None, mode="sequential"):
+
+        # 1. Iterate for the GConv layers specified by the user
+        if 'MultiSeasonConv1DGated' in self.modelStructure.keys():
+            for l in range(len(self.modelStructure['MultiSeasonConv1DGated']["layers"])):
+
+                unitsMPC = self.modelStructure['MultiSeasonConv1DGated']["layers"][l]
+
+                sconv_layer = mpc.MultiSeasonalGatedConv1D(
+                    units_per_cycle=unitsMPC,
+                    cycles=self.modelStructure['MultiSeasonConv1DGated']["cycles"],
+                    mix_units=self.modelStructure['MultiSeasonConv1DGated']["mix_units"],
+                    use_layer_norm=self.modelStructure['MultiSeasonConv1DGated']["use_layer_norm"],
+                )
+
+                if mode == "functional":
+                    modelBuilder = sconv_layer(modelBuilder)
+
+                elif mode == "sequential":
+                    model.add(sconv_layer)
+
+        if mode == "functional":
+            return modelBuilder
+        elif mode == "sequential":
+            return model
+        else:
+            raise Exception("Mode " + str(mode) + " not recognised!")
+
     # Generalized method to create a Model with custom layers
     def createModelArchitecture(self, dropout_FF=None, mode="sequential", adjacency_matrix=None, input_shape=(None, None, None, None)):
 
@@ -197,6 +227,10 @@ class ModelArch:
             if "Conv1DGated" in self.modelStructure.keys():
                 modelBuilder = self.createConv1DGatedLayer(modelBuilder=modelBuilder, mode=mode)
                 previous="Conv1DGated"
+
+            if "MultiSeasonConv1DGated" in self.modelStructure.keys():
+                modelBuilder = self.createMultiSeasonConv1DGatedLayer(modelBuilder=modelBuilder, mode=mode)
+                previous="MultiSeasonConv1DGated"
 
             if "LSTM" in self.modelStructure.keys():
 
