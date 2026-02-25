@@ -15,15 +15,16 @@ ren_prod_italy = data.Dataset().getItalyEnergyProductionDataset(freq=dataset_fre
 # 48: 0.5 days | 96: 1 day | 192 : 2 days | 288: 3 days | 480: 5 days | 672: 7 days | 960: 10 days | 1920: 20 days
 time_window = 96
 steps_ahead = 96
-feature_variables = ["month","day","hour","minute"]   # "year" | "month" | "day" | "day_of_week" | "hour" | "minute"
+feature_variables = ["year","month","day","day_of_week","hour","minute"]   # "year" | "month" | "day" | "day_of_week" | "hour" | "minute"
 var_to_predict = "Thermal"                            # "Wind" | "Geothermal" | "Hydro" | "Photovoltaic" | "Biomass" | "Thermal" | "Self-consumption"
 model_name = var_to_predict.lower() + "_prediction_" + dataset_freq
 
 # 0. Build the model
-model = arch.ModelArch(modelStructure={"MultiSeasonConv1DGated": {"layers": [16, 16, 16, 16, 16, 16, 16, 16, 16, 16], "cycles": [16, 24, 48, 96, 112, 120, 144, 192], "mix_units": 160, "use_layer_norm": True},
-                                       "LSTM": {"layers": [128, 64], "activation": "tanh", "dropout": 0.0},
+model = arch.ModelArch(modelStructure={"MultiSeasonConv1DGated": {"layers": [16, 16, 16], "cycles": [12, 48, 96],
+                                                                  "mix_units": 48, "use_layer_norm": True, "baseline_kernel": 96},
+                                       "LSTM": {"layers": [128, 64], "activation": "tanh", "dropout": 0.2},
                                        "FF": {"layers": [200, 200], "activation": "relu"}}).createRegressionModelArchitecture(mode="functional",
-                                                                                                                              dropout_FF=0.0,
+                                                                                                                              dropout_FF=0.2,
                                                                                                                               input_shape=(time_window, len(feature_variables)))
 
 # 1. Compile and train
@@ -31,13 +32,13 @@ trained_model = train.ModelTraining(model=model).trainModel(dataInDataFrameForma
                                                             feature_variables=feature_variables,
                                                             target_variables=var_to_predict,
                                                             standardize=False,
-                                                            split_method="seasonal-time-series",  # "time-series" | "seasonal-time-series" | "random"
+                                                            split_method="time-series",  # "time-series" | "seasonal-time-series" | "random"
                                                             seasonal_splits=182,
                                                             time_window=time_window,
                                                             test_size=0.30,
                                                             batch_size=32,
                                                             validation_split=0.2,
-                                                            epochs=20)
+                                                            epochs=150)
 
 # 2. Evaluate the model
 evaluation = eval.ModelEvaluation(model=trained_model).evaluateModelPerformance()

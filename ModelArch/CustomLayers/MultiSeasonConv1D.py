@@ -1,7 +1,7 @@
 import tensorflow as tf
 
 class MultiSeasonalGatedConv1D(tf.keras.layers.Layer):
-    def __init__(self, cycles, units_per_cycle, use_layer_norm, mix_units=None, **kwargs):
+    def __init__(self, cycles, units_per_cycle, use_layer_norm, mix_units=None, baseline_kernel=None, **kwargs):
         super().__init__(**kwargs)
 
         # List or scalars are accepted
@@ -18,6 +18,17 @@ class MultiSeasonalGatedConv1D(tf.keras.layers.Layer):
         self.units_per_cycle = units_per_cycle
         self.mix_units = mix_units or sum(units_per_cycle)
         self.use_layer_norm = use_layer_norm
+
+        # Baseline Convolution
+        # baseline kernel = longest cycle if not specified
+        self.baseline_kernel = baseline_kernel or max(cycles)
+
+        # baseline conv (1 filtro = livello)
+        self.baseline_conv = tf.keras.layers.Conv1D(
+            filters=1,
+            kernel_size=self.baseline_kernel,
+            padding="same"
+        )
 
         self.convs = []
         self.gates = []
@@ -44,15 +55,28 @@ class MultiSeasonalGatedConv1D(tf.keras.layers.Layer):
             self.layer_norm = None
 
     def call(self, inputs):
+        # Baseline used as Mobile support
+        baseline = self.baseline_conv(inputs)  # (B,T,1)
+
+        # detrended series
+        x = inputs - baseline
+
         outputs = []
-
         for conv, gate in zip(self.convs, self.gates):
-            x = conv(inputs)
-            g = gate(inputs)
-            outputs.append(x * g)
+            s = conv(x)
+            g = gate(x)
+            outputs.append(s * g)
 
-        # concat along feature axis
-        return tf.concat(outputs, axis=-1)
+        x = tf.concat(outputs, axis=-1)
+        x = self.mix_conv(x)
+
+        if self.layer_norm is not None:
+            x = self.layer_norm(x)
+
+        # restore baseline level
+        x = x + baseline
+
+        return x
 
     def compute_output_shape(self, input_shape):
         batch, time, _ = input_shape
