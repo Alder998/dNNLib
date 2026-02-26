@@ -1,7 +1,7 @@
 import tensorflow as tf
 
 class MultiSeasonalGatedConv1D(tf.keras.layers.Layer):
-    def __init__(self, cycles, units_per_cycle, use_layer_norm, mix_units=None, baseline_kernel=None, **kwargs):
+    def __init__(self, cycles, units_per_cycle, use_layer_norm, mix_units=None, baseline_kernel=None, use_seasonal_memory=False, **kwargs):
         super().__init__(**kwargs)
 
         # List or scalars are accepted
@@ -18,6 +18,7 @@ class MultiSeasonalGatedConv1D(tf.keras.layers.Layer):
         self.units_per_cycle = units_per_cycle
         self.mix_units = mix_units or sum(units_per_cycle)
         self.use_layer_norm = use_layer_norm
+        self.use_seasonal_memory = use_seasonal_memory
 
         # Baseline Convolution
         # baseline kernel = longest cycle if not specified
@@ -32,14 +33,16 @@ class MultiSeasonalGatedConv1D(tf.keras.layers.Layer):
 
         self.convs = []
         self.gates = []
+        self.mem_projs = []
 
         for c, u in zip(self.cycles, self.units_per_cycle):
             # Convolutional Part
-            self.convs.append(
-                tf.keras.layers.Conv1D(filters=u, kernel_size=c, padding="same"))
+            self.convs.append(tf.keras.layers.Conv1D(filters=u, kernel_size=c, padding="same"))
             # Apply gates to convolutions
-            self.gates.append(
-                tf.keras.layers.Conv1D(filters=u,kernel_size=c, padding="same", activation="sigmoid"))
+            self.gates.append(tf.keras.layers.Conv1D(filters=u, kernel_size=c, padding="same", activation="sigmoid"))
+
+            if self.use_seasonal_memory:
+                self.mem_projs.append(tf.keras.layers.Conv1D(u, 1, padding="same"))
 
         # Add the 1x1 Mixing Conv1D to better include the seasonality
         self.mix_conv = tf.keras.layers.Conv1D(
@@ -54,18 +57,37 @@ class MultiSeasonalGatedConv1D(tf.keras.layers.Layer):
         else:
             self.layer_norm = None
 
-    def call(self, inputs):
-        # Baseline used as Mobile support
-        baseline = self.baseline_conv(inputs)  # (B,T,1)
+    def seasonal_shift(self, x, lag):
+        # shift right: x(t-lag)
+        if lag == 0:
+            return x
 
-        # detrended series
+        B = tf.shape(x)[0]
+        T = tf.shape(x)[1]
+        F = tf.shape(x)[2]
+
+        pad = tf.zeros((B, lag, F), dtype=x.dtype)
+        sliced = x[:, :-lag, :]
+        return tf.concat([pad, sliced], axis=1)
+
+    def call(self, inputs):
+        # baseline used as mobile support
+        baseline = self.baseline_conv(inputs)
         x = inputs - baseline
 
         outputs = []
-        for conv, gate in zip(self.convs, self.gates):
+
+        for i, (conv, gate, c) in enumerate(zip(self.convs, self.gates, self.cycles)):
             s = conv(x)
             g = gate(x)
-            outputs.append(s * g)
+            y = s * g
+
+            if self.use_seasonal_memory:
+                lagged = self.seasonal_shift(x, c)
+                lagged = self.mem_projs[i](lagged)
+                y = y + lagged
+
+            outputs.append(y)
 
         x = tf.concat(outputs, axis=-1)
         x = self.mix_conv(x)
@@ -73,9 +95,7 @@ class MultiSeasonalGatedConv1D(tf.keras.layers.Layer):
         if self.layer_norm is not None:
             x = self.layer_norm(x)
 
-        # restore baseline level
         x = x + baseline
-
         return x
 
     def compute_output_shape(self, input_shape):

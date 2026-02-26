@@ -178,6 +178,7 @@ class ModelArch:
                     mix_units=self.modelStructure['MultiSeasonConv1DGated']["mix_units"],
                     use_layer_norm=self.modelStructure['MultiSeasonConv1DGated']["use_layer_norm"],
                     baseline_kernel=self.modelStructure['MultiSeasonConv1DGated']["baseline_kernel"],
+                    use_seasonal_memory=self.modelStructure['MultiSeasonConv1DGated']["use_seasonal_memory"],
                 )
 
                 if mode == "functional":

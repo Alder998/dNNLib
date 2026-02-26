@@ -16,15 +16,16 @@ ren_prod_italy = data.Dataset().getItalyEnergyProductionDataset(freq=dataset_fre
 time_window = 96
 steps_ahead = 96
 feature_variables = ["year","month","day","day_of_week","hour","minute"]   # "year" | "month" | "day" | "day_of_week" | "hour" | "minute"
-var_to_predict = "Thermal"                            # "Wind" | "Geothermal" | "Hydro" | "Photovoltaic" | "Biomass" | "Thermal" | "Self-consumption"
+var_to_predict = "Hydro"                            # "Wind" | "Geothermal" | "Hydro" | "Photovoltaic" | "Biomass" | "Thermal" | "Self-consumption"
 model_name = var_to_predict.lower() + "_prediction_" + dataset_freq
 
 # 0. Build the model
 model = arch.ModelArch(modelStructure={"MultiSeasonConv1DGated": {"layers": [16, 16, 16], "cycles": [12, 48, 96],
-                                                                  "mix_units": 48, "use_layer_norm": True, "baseline_kernel": 96},
-                                       "LSTM": {"layers": [128, 64], "activation": "tanh", "dropout": 0.2},
+                                                                  "mix_units": 48, "use_layer_norm": True, "baseline_kernel": 96,
+                                                                  "use_seasonal_memory": True},
+                                       "LSTM": {"layers": [128, 64], "activation": "tanh", "dropout": 0.0},
                                        "FF": {"layers": [200, 200], "activation": "relu"}}).createRegressionModelArchitecture(mode="functional",
-                                                                                                                              dropout_FF=0.2,
+                                                                                                                              dropout_FF=0.0,
                                                                                                                               input_shape=(time_window, len(feature_variables)))
 
 # 1. Compile and train
@@ -33,12 +34,12 @@ trained_model = train.ModelTraining(model=model).trainModel(dataInDataFrameForma
                                                             target_variables=var_to_predict,
                                                             standardize=False,
                                                             split_method="time-series",  # "time-series" | "seasonal-time-series" | "random"
-                                                            seasonal_splits=182,
+                                                            seasonal_splits=12,
                                                             time_window=time_window,
                                                             test_size=0.30,
                                                             batch_size=32,
                                                             validation_split=0.2,
-                                                            epochs=150)
+                                                            epochs=100)
 
 # 2. Evaluate the model
 evaluation = eval.ModelEvaluation(model=trained_model).evaluateModelPerformance()
