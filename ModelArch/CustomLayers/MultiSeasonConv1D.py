@@ -1,7 +1,7 @@
 import tensorflow as tf
 
 class MultiSeasonalGatedConv1D(tf.keras.layers.Layer):
-    def __init__(self, cycles, units_per_cycle, use_layer_norm, mix_units=None, baseline_kernel=None, use_seasonal_memory=False, **kwargs):
+    def __init__(self, cycles, units_per_cycle, use_layer_norm, mix_units=None, baseline_kernel=None, use_seasonal_memory=False, use_cross_cycle_attention=False, **kwargs):
         super().__init__(**kwargs)
 
         # List or scalars are accepted
@@ -19,38 +19,37 @@ class MultiSeasonalGatedConv1D(tf.keras.layers.Layer):
         self.mix_units = mix_units or sum(units_per_cycle)
         self.use_layer_norm = use_layer_norm
         self.use_seasonal_memory = use_seasonal_memory
+        self.use_cross_cycle_attention = use_cross_cycle_attention
 
         # Baseline Convolution
         # baseline kernel = longest cycle if not specified
         self.baseline_kernel = baseline_kernel or max(cycles)
 
-        # baseline conv (1 filtro = livello)
-        self.baseline_conv = tf.keras.layers.Conv1D(
-            filters=1,
-            kernel_size=self.baseline_kernel,
-            padding="same"
-        )
+        # baseline conv (1 filter = 1 level)
+        self.baseline_conv = tf.keras.layers.Conv1D(filters=1, kernel_size=self.baseline_kernel, padding="same")
 
         self.convs = []
         self.gates = []
         self.mem_projs = []
+        self.amps = []
 
         for c, u in zip(self.cycles, self.units_per_cycle):
             # Convolutional Part
             self.convs.append(tf.keras.layers.Conv1D(filters=u, kernel_size=c, padding="same"))
             # Apply gates to convolutions
             self.gates.append(tf.keras.layers.Conv1D(filters=u, kernel_size=c, padding="same", activation="sigmoid"))
-
+            # Seasonal Amplitude
+            self.amps.append(tf.keras.layers.Dense(u, activation="sigmoid"))
+            # If required, include seasonal memory
             if self.use_seasonal_memory:
                 self.mem_projs.append(tf.keras.layers.Conv1D(u, 1, padding="same"))
 
+        if self.use_cross_cycle_attention:
+            self.cycle_pool = tf.keras.layers.GlobalAveragePooling1D(keepdims=True)
+            self.cycle_score = tf.keras.layers.Dense(1)
+
         # Add the 1x1 Mixing Conv1D to better include the seasonality
-        self.mix_conv = tf.keras.layers.Conv1D(
-            filters=self.mix_units,
-            kernel_size=1,
-            padding="same",
-            activation="relu"
-        )
+        self.mix_conv = tf.keras.layers.Conv1D(filters=self.mix_units, kernel_size=1, padding="same", activation="relu")
         # add a layer norm, if required
         if self.use_layer_norm:
             self.layer_norm = tf.keras.layers.LayerNormalization(axis=-1)
@@ -82,6 +81,10 @@ class MultiSeasonalGatedConv1D(tf.keras.layers.Layer):
             g = gate(x)
             y = s * g
 
+            # Add Seasonal Amplitude
+            amp = self.amps[i](y)
+            y = y * amp
+
             if self.use_seasonal_memory:
                 lagged = self.seasonal_shift(x, c)
                 lagged = self.mem_projs[i](lagged)
@@ -89,7 +92,24 @@ class MultiSeasonalGatedConv1D(tf.keras.layers.Layer):
 
             outputs.append(y)
 
-        x = tf.concat(outputs, axis=-1)
+        if self.use_cross_cycle_attention:
+            scores = []
+            for y in outputs:
+                p = self.cycle_pool(y)  # (B,1,F)
+                s = self.cycle_score(p)  # (B,1,1)
+                scores.append(s)
+
+            scores = tf.concat(scores, axis=-1)  # (B,1,C)
+            weights = tf.nn.softmax(scores, axis=-1)
+
+            weighted = []
+            for i, y in enumerate(outputs):
+                w = weights[..., i:i + 1]  # (B,1,1)
+                weighted.append(y * w)
+
+            x = tf.concat(weighted, axis=-1)
+        else:
+            x = tf.concat(outputs, axis=-1)
         x = self.mix_conv(x)
 
         if self.layer_norm is not None:

@@ -179,6 +179,7 @@ class ModelArch:
                     use_layer_norm=self.modelStructure['MultiSeasonConv1DGated']["use_layer_norm"],
                     baseline_kernel=self.modelStructure['MultiSeasonConv1DGated']["baseline_kernel"],
                     use_seasonal_memory=self.modelStructure['MultiSeasonConv1DGated']["use_seasonal_memory"],
+                    use_cross_cycle_attention=self.modelStructure['MultiSeasonConv1DGated']["use_cross_cycle_attention"],
                 )
 
                 if mode == "functional":
@@ -231,8 +232,37 @@ class ModelArch:
                 previous="Conv1DGated"
 
             if "MultiSeasonConv1DGated" in self.modelStructure.keys():
+
+                if previous == "GConv":
+                    # Reshape after Gconv
+                    modelBuilder = tsrh.TimeSpaceReshape()(modelBuilder)
+
                 modelBuilder = self.createMultiSeasonConv1DGatedLayer(modelBuilder=modelBuilder, mode=mode)
-                previous="MultiSeasonConv1DGated"
+
+                if previous == "GConv":
+                    # Restore the dimensions with the custom layer to keep the space dimension
+                    modelBuilder = tsrt.TimeSpaceRestore(N=input_shape[1])(modelBuilder)
+                    modelBuilder = tf.keras.layers.TimeDistributed(tf.keras.layers.Dense(1))(modelBuilder)  # (B, T, N, 1)
+
+                    if "residual_output_shape" in self.modelStructure['GConv'].keys():
+                        # Create and define the spatial embedding
+                        spatial_embedding = tf.keras.layers.Embedding(
+                            input_dim=input_shape[1],
+                            output_dim=self.modelStructure['GConv']["residual_output_shape"],
+                            name="spatial_embedding"
+                        )
+                        # Create Range for nodes embedding
+                        node_ids = tf.range(input_shape[1])
+                        node_bias = spatial_embedding(node_ids)  # (N, 1)
+
+                        # Create dimensions
+                        node_bias = tf.keras.layers.Lambda(
+                            lambda x: tf.expand_dims(tf.expand_dims(x, axis=0), axis=0)
+                        )(node_bias)  # (1, 1, N, 1)
+
+                        # Sum the residual to the model
+                        modelBuilder = tf.keras.layers.Add()([modelBuilder, node_bias])
+                #previous="MultiSeasonConv1DGated"
 
             if "LSTM" in self.modelStructure.keys():
 

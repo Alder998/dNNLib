@@ -16,13 +16,13 @@ ren_prod_italy = data.Dataset().getItalyEnergyProductionDataset(freq=dataset_fre
 time_window = 96
 steps_ahead = 96
 feature_variables = ["year","month","day","day_of_week","hour","minute"]   # "year" | "month" | "day" | "day_of_week" | "hour" | "minute"
-var_to_predict = "Hydro"                            # "Wind" | "Geothermal" | "Hydro" | "Photovoltaic" | "Biomass" | "Thermal" | "Self-consumption"
+var_to_predict = "Thermal"                            # "Wind" | "Geothermal" | "Hydro" | "Photovoltaic" | "Biomass" | "Thermal" | "Self-consumption"
 model_name = var_to_predict.lower() + "_prediction_" + dataset_freq
 
 # 0. Build the model
-model = arch.ModelArch(modelStructure={"MultiSeasonConv1DGated": {"layers": [16, 16, 16], "cycles": [12, 48, 96],
-                                                                  "mix_units": 48, "use_layer_norm": True, "baseline_kernel": 96,
-                                                                  "use_seasonal_memory": True},
+model = arch.ModelArch(modelStructure={"MultiSeasonConv1DGated": {"layers": [16, 16, 16, 16, 16], "cycles": [12, 48, 96, 192, 288],
+                                                                  "mix_units": 80, "use_layer_norm": True, "baseline_kernel": 288,
+                                                                  "use_cross_cycle_attention": True, "use_seasonal_memory": False},
                                        "LSTM": {"layers": [128, 64], "activation": "tanh", "dropout": 0.0},
                                        "FF": {"layers": [200, 200], "activation": "relu"}}).createRegressionModelArchitecture(mode="functional",
                                                                                                                               dropout_FF=0.0,

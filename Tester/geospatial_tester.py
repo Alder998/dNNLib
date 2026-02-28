@@ -9,10 +9,10 @@ from ModelSaving import ModelSaving as ms
 from VectorModule import VectorModule as vector
 from UtilsService import Plots as plot
 
-weatherData = data.Dataset().loadWeatherDataset(size="3m")
+weatherData = data.Dataset().loadWeatherDataset(size="1m")
 
 # 0.0. Set the input
-modelStructure = {"GConv": {"layers": [32], "activation": "relu", "residual_output_shape": 1},
+modelStructure = {"GConv": {"layers": [32], "activation": "relu"},
                   "LSTM": {"layers": [128, 64], "activation": "tanh", "dropout": 0.0},
                   "FF": {"layers": [200, 200], "activation": "relu"}}
 space_variables = ["latitude", "longitude"]
@@ -47,7 +47,7 @@ trained_model = train.ModelTraining(model=model).trainGeospatialModel(dataInData
                                                                       test_size=0.30,
                                                                       batch_size=32,
                                                                       validation_split=0.2,
-                                                                      epochs=200)
+                                                                      epochs=100)
 # 2. Evaluate Model
 evaluation = eval.ModelEvaluation(model=trained_model).evaluateModelPerformance(time_space=True)
 
