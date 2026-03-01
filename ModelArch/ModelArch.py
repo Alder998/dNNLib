@@ -7,6 +7,7 @@ from ModelArch.CustomLayers import TimeSpaceReshape as tsrh
 from ModelArch.CustomLayers import TimeSpaceRestore as tsrt
 from ModelArch.CustomLayers import SeasonalGatedConv1D as pc
 from ModelArch.CustomLayers import MultiSeasonConv1D as mpc
+from ModelArch.CustomLosses import PeakAwareMSEWithSlope as pal
 
 class ModelArch:
 
@@ -305,7 +306,8 @@ class ModelArch:
             raise Exception("Mode " + str(mode) + " not recognised!")
 
     # Super-generalized function to have a Regression Model
-    def createRegressionModelArchitecture(self, mode="sequential", dropout_FF=None, adjacency_matrix=None, input_shape=(None, None, None, None)):
+    def createRegressionModelArchitecture(self, mode="sequential", dropout_FF=None, adjacency_matrix=None, input_shape=(None, None, None, None), loss="MSE",
+                                          peak_aware_loss_params={"alpha": 3.0, "beta":2.0, "gamma":1.0}):
 
         # Logging
         print("INFO - MODEL ARCHITECTURE: creating model Architecture for regression...")
@@ -326,7 +328,15 @@ class ModelArch:
         modelInfo["model"] = modelBuilder
 
         # Add the typical loss used for regression problems (MSE)
-        loss = tf.keras.losses.MeanSquaredError()
+        if loss == "MSE":
+            loss = tf.keras.losses.MeanSquaredError()
+        elif loss == "peak-aware-MSE":
+            loss = pal.PeakAwareMSEWithSlope(alpha=peak_aware_loss_params["alpha"],
+                                             beta=peak_aware_loss_params["beta"],
+                                             gamma=peak_aware_loss_params["gamma"])   # alpha=3.0, beta=2.0, gamma=1.0
+        else:
+            raise Exception("Loss " + str(loss) + " not recognised!")
+        # Add the loss to the model
         modelInfo["loss"] = loss
 
         # Add the structure (functional to vectorize the dataset)

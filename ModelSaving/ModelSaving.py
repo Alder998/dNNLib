@@ -10,11 +10,12 @@ class ModelSaving:
 
     def saveModelWeights(self, save_dir, model_name="model"):
 
-        custom_directory = save_dir + "\\" + model_name
-        # 0. Create directory, if not existing
-        if not os.path.exists(custom_directory):
-            os.mkdir(custom_directory)
+        if save_dir is not None:
+            custom_directory = save_dir + "\\" + model_name
+            # 0. Create directory, if not existing
+            if not os.path.exists(custom_directory):
+                os.mkdir(custom_directory)
 
-        # 1. Save Model Weights into the directory
-        self.model["model"].save_weights(custom_directory + "\\model_weights.weights.h5")
-        print("INFO - Model weights saved correctly")
+            # 1. Save Model Weights into the directory
+            self.model["model"].save_weights(custom_directory + "\\model_weights.weights.h5")
+            print("INFO - Model weights saved correctly")

@@ -84,7 +84,6 @@ class Plots:
         ani = FuncAnimation(fig, update, frames=len(time_steps), interval=300)
 
         if savePath is not None:
-            ani.save(savePath,
-                     writer="pillow", fps=5)
+            ani.save(savePath, writer="pillow", fps=5)
         # Show Plot
         plt.show()
