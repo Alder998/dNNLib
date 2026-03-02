@@ -331,9 +331,12 @@ class ModelArch:
         if loss == "MSE":
             loss = tf.keras.losses.MeanSquaredError()
         elif loss == "peak-aware-MSE":
-            loss = pal.PeakAwareMSEWithSlope(alpha=peak_aware_loss_params["alpha"],
-                                             beta=peak_aware_loss_params["beta"],
-                                             gamma=peak_aware_loss_params["gamma"])   # alpha=3.0, beta=2.0, gamma=1.0
+            loss = pal.PeakAwareMSEWithSlopeRecall(alpha=peak_aware_loss_params["alpha"],
+                                                   beta=peak_aware_loss_params["beta"],
+                                                   gamma=peak_aware_loss_params["gamma"],
+                                                   delta=peak_aware_loss_params["delta"],
+                                                   peak_threshold=peak_aware_loss_params["peak_threshold"]
+                                                   )
         else:
             raise Exception("Loss " + str(loss) + " not recognised!")
         # Add the loss to the model
