@@ -9,20 +9,21 @@ from ModelPrediction import ModelPrediction as pred
 from ModelSaving import ModelSaving as ms
 
 # 0.0. get some data (2025 15 min-power production in Italy)
-dataset_freq = "1h"   # "15min" | "1h"
+dataset_freq = "15min"   # "15min" | "1h"
 ren_prod_italy = data.Dataset().getItalyEnergyProductionDataset(freq=dataset_freq)
 # 0.1. Set the params
 # 48: 0.5 days | 96: 1 day | 192 : 2 days | 288: 3 days | 480: 5 days | 672: 7 days | 960: 10 days | 1920: 20 days
-time_window = 120
-steps_ahead = 120
-feature_variables = ["month","day","hour"]   # "year" | "month" | "day" | "day_of_week" | "hour" | "minute"
-var_to_predict = "Thermal"                                   # "Wind" | "Geothermal" | "Hydro" |   "Photovoltaic" | "Biomass" | "Thermal" | "Self-consumption"
+time_window = 96
+steps_ahead = 96
+feature_variables = ["year","month","day","day_of_week","hour","minute"]   # "year" | "month" | "day" | "day_of_week" | "hour" | "minute"
+var_to_predict = "Thermal"                           # "Wind" | "Geothermal" | "Hydro" | "Photovoltaic" | "Biomass" | "Thermal" | "Self-consumption"
 model_name = var_to_predict.lower() + "_prediction_" + dataset_freq
+confidence_area = True
 
 # 0. Build the model
-model = arch.ModelArch(modelStructure={"MultiSeasonConv1DGated": {"layers": [16, 16, 16, 16], "cycles": [120, 240, 480, 960],
-                                                                  "mix_units": 64, "use_layer_norm": True, "baseline_kernel": 960,
-                                                                  "use_cross_cycle_attention": True, "use_seasonal_memory": False},
+model = arch.ModelArch(modelStructure={"MultiSeasonConv1DGated": {"layers": [16, 16, 16, 16], "cycles": [16, 24, 48, 96],
+                                                                  "use_layer_norm": True, "baseline_kernel": None,
+                                                                  "use_cross_cycle_attention": False, "use_seasonal_memory": False},
                                        "LSTM": {"layers": [128, 64], "activation": "tanh", "dropout": 0.0},
                                        "FF": {"layers": [200, 200], "activation": "relu"}}).createRegressionModelArchitecture(mode="functional",
                                                                                                                               dropout_FF=0.0,
@@ -36,22 +37,23 @@ trained_model = train.ModelTraining(model=model).trainModel(dataInDataFrameForma
                                                             feature_variables=feature_variables,
                                                             target_variables=var_to_predict,
                                                             standardize=False,
-                                                            split_method="seasonal-time-series",  # "time-series" | "seasonal-time-series" | "random"
+                                                            split_method="time-series",  # "time-series" | "seasonal-time-series" | "random"
                                                             seasonal_splits=5,
                                                             time_window=time_window,
                                                             test_size=0.30,
                                                             batch_size=32,
                                                             validation_split=0.2,
-                                                            epochs=25)
+                                                            epochs=300)
 
 # 2. Evaluate the model
 evaluation = eval.ModelEvaluation(model=trained_model).evaluateModelPerformance()
 
 # 3. Predict
-prediction_dataset = pred.ModelPrediction(model=trained_model).predictTimeSeriesWithTrainedModel(dataInDataFrameFormat=ren_prod_italy,
+prediction_dataset, upper_95, lower_95 = pred.ModelPrediction(model=trained_model).predictTimeSeriesWithTrainedModel(dataInDataFrameFormat=ren_prod_italy,
                                                                                                  steps_ahead=steps_ahead,
                                                                                                  frequency=dataset_freq,
-                                                                                                 date_column="index")
+                                                                                                 date_column="index",
+                                                                                                 confidence_area=confidence_area)
 
 # 4. Save Model Weights
 ms.ModelSaving(model=trained_model).saveModelWeights(save_dir="D:\\PythonProjects-Storage\\dNNLib\\Tester\\stored_models",
@@ -61,4 +63,7 @@ ms.ModelSaving(model=trained_model).saveModelWeights(save_dir="D:\\PythonProject
 plt.figure(figsize = (15, 5))
 plt.plot(ren_prod_italy.sort_values(by="Date", ascending=True)[var_to_predict][(-672 if dataset_freq=="15min" else -168):])
 plt.plot(prediction_dataset[var_to_predict], color="red", linestyle="dashed")
+if confidence_area:
+    plt.fill_between(lower_95.index, lower_95[trained_model["var_to_predict"]], upper_95[trained_model["var_to_predict"]], color="red", alpha=0.1)
+plt.title("Prediction on target: " + var_to_predict + " frequency: " + dataset_freq)
 plt.show()

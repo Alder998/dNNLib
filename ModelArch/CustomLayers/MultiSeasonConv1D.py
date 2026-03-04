@@ -22,11 +22,11 @@ class MultiSeasonalGatedConv1D(tf.keras.layers.Layer):
         self.use_cross_cycle_attention = use_cross_cycle_attention
 
         # Baseline Convolution
-        # baseline kernel = longest cycle if not specified
+        # baseline kernel = longest cycle if not specified (if None, not applied)
         self.baseline_kernel = baseline_kernel or max(cycles)
-
-        # baseline conv (1 filter = 1 level)
-        self.baseline_conv = tf.keras.layers.Conv1D(filters=1, kernel_size=self.baseline_kernel, padding="same")
+        if self.baseline_kernel is not None:
+            # baseline conv (1 filter = 1 level)
+            self.baseline_conv = tf.keras.layers.Conv1D(filters=1, kernel_size=self.baseline_kernel, padding="same")
 
         self.convs = []
         self.gates = []

@@ -1,5 +1,6 @@
 """Class to create the Model Architecture according user params"""
 import tensorflow as tf
+import numpy as np
 from tensorflow.keras import backend as K
 from ModelArch.CustomLayers import GraphConv as gnn
 from ModelArch.CustomLayers import GraphGRU as gru
@@ -176,7 +177,7 @@ class ModelArch:
                 sconv_layer = mpc.MultiSeasonalGatedConv1D(
                     units_per_cycle=unitsMPC,
                     cycles=self.modelStructure['MultiSeasonConv1DGated']["cycles"],
-                    mix_units=self.modelStructure['MultiSeasonConv1DGated']["mix_units"],
+                    mix_units=np.array(self.modelStructure['MultiSeasonConv1DGated']["layers"]).sum(),
                     use_layer_norm=self.modelStructure['MultiSeasonConv1DGated']["use_layer_norm"],
                     baseline_kernel=self.modelStructure['MultiSeasonConv1DGated']["baseline_kernel"],
                     use_seasonal_memory=self.modelStructure['MultiSeasonConv1DGated']["use_seasonal_memory"],

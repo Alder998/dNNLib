@@ -10,13 +10,20 @@ class ModelPrediction:
         pass
 
     # Function to create the steps-ahead dataFrame
-    def createFutureDataFrame(self, dataInDataFrameFormat, date_column, frequency):
+    def createFutureDataFrame(self, dataInDataFrameFormat, date_column, frequency, scope="prediction"):
 
         if date_column == "index":
             date_idx = dataInDataFrameFormat.index
         else:
             date_idx = dataInDataFrameFormat[date_column]
-        future_dataframe = pd.DataFrame(pd.date_range(start=date_idx.max(), periods=self.model["time_window"], freq=frequency)).set_axis(["Date"], axis=1)
+        if scope == "prediction":
+            future_dataframe = pd.DataFrame(pd.date_range(start=date_idx.max(), periods=self.model["time_window"], freq=frequency)).set_axis(["Date"], axis=1)
+        elif scope == "confidence":
+            future_dataframe = pd.DataFrame(pd.date_range(start=pd.Series(date_idx).head(self.model["time_window"])[self.model["time_window"]-1],
+                                                          periods=self.model["time_window"],
+                                                          freq=frequency)).set_axis(["Date"], axis=1)
+        else:
+            raise Exception("Scope: " + str(scope) + " not implemented!")
 
         # 1. Create the columns params
         if "year" in self.model["params"]:
@@ -50,12 +57,42 @@ class ModelPrediction:
 
         return future_dataframe, input_data
 
-    def predictTimeSeriesWithTrainedModel (self, dataInDataFrameFormat, steps_ahead, frequency, date_column="index"):
+    def generateConfidenceBars (self, dataInDataFrameFormat, frequency, date_column="index"):
+
+        print("INFO -- Generating confidence area...")
+        future_dataframe, input_data = self.createFutureDataFrame(dataInDataFrameFormat=dataInDataFrameFormat,
+                                                                  date_column=date_column,
+                                                                  frequency=frequency,
+                                                                  scope="confidence")
+        # 0. predict
+        prediction = self.model["model"].predict(input_data)
+        prediction_dataFrame = pd.DataFrame(np.squeeze(prediction, axis=0)).set_axis([self.model["var_to_predict"]],axis=1).set_index(future_dataframe["Date"])
+
+        # 1. Get the actual data from the dataset
+        if date_column == "index":
+            actual_data = dataInDataFrameFormat[dataInDataFrameFormat.index.isin(prediction_dataFrame.index)][self.model["var_to_predict"]]
+        else:
+            actual_data = dataInDataFrameFormat[dataInDataFrameFormat[date_column].isin(prediction_dataFrame[date_column])][self.model["var_to_predict"]]
+        # 2. Create the residuals (absolute values)
+        residuals = prediction_dataFrame[pd.DataFrame(prediction_dataFrame).columns[0]] - pd.DataFrame(actual_data)[pd.DataFrame(actual_data).columns[0]]
+        scores = np.abs(residuals.values)
+        # 3. Generate the q areas (confidence) at 95%
+        conficence_area = np.quantile(scores, 0.95)
+
+        return conficence_area
+
+    def predictTimeSeriesWithTrainedModel (self, dataInDataFrameFormat, steps_ahead, frequency, date_column="index", confidence_area=False):
 
         # 0. Create the future DataFrame
         future_dataframe, input_data = self.createFutureDataFrame(dataInDataFrameFormat=dataInDataFrameFormat,
                                                                   date_column=date_column,
                                                                   frequency=frequency)
+        # 0.1. Create Confidence bars
+        if confidence_area:
+            conficence_area = self.generateConfidenceBars(dataInDataFrameFormat=dataInDataFrameFormat, date_column=date_column, frequency=frequency)
+        else:
+            conficence_area = 0
+
         # 1. Enable the model to predict a given number of steps ahead
         if steps_ahead < self.model["time_window"]:
             # 2. Predict with stored data
@@ -94,7 +131,11 @@ class ModelPrediction:
         else:
             raise Exception("Error in computing prediction steps!")
 
-        return prediction_dataFrame
+        # 3. Add the confidence area
+        upper_prediction = prediction_dataFrame + conficence_area
+        lower_prediction = prediction_dataFrame - conficence_area
+
+        return prediction_dataFrame, upper_prediction, lower_prediction
 
     # Function to predict with geospatial model
     def predictGeoSpatialWithTrainedModel (self, dataInDataFrameFormat, steps_ahead, frequency, date_column="index"):
