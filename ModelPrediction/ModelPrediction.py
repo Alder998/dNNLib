@@ -72,7 +72,7 @@ class ModelPrediction:
         if date_column == "index":
             actual_data = dataInDataFrameFormat[dataInDataFrameFormat.index.isin(prediction_dataFrame.index)][self.model["var_to_predict"]]
         else:
-            actual_data = dataInDataFrameFormat[dataInDataFrameFormat[date_column].isin(prediction_dataFrame[date_column])][self.model["var_to_predict"]]
+            actual_data = dataInDataFrameFormat[dataInDataFrameFormat[date_column].isin(prediction_dataFrame.index)].set_index(date_column)[self.model["var_to_predict"]]
         # 2. Create the residuals (absolute values)
         residuals = prediction_dataFrame[pd.DataFrame(prediction_dataFrame).columns[0]] - pd.DataFrame(actual_data)[pd.DataFrame(actual_data).columns[0]]
         scores = np.abs(residuals.values)
@@ -81,7 +81,7 @@ class ModelPrediction:
 
         return conficence_area
 
-    def predictTimeSeriesWithTrainedModel (self, dataInDataFrameFormat, steps_ahead, frequency, date_column="index", confidence_area=False):
+    def predictTimeSeriesWithTrainedModel (self, dataInDataFrameFormat, steps_ahead, frequency, date_column="index", confidence_area=True):
 
         # 0. Create the future DataFrame
         future_dataframe, input_data = self.createFutureDataFrame(dataInDataFrameFormat=dataInDataFrameFormat,

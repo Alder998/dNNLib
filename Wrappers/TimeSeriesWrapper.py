@@ -21,7 +21,7 @@ class TimeSeriesWrapper:
                                             peak_aware_loss_params={"alpha": 3.0, "beta": 2.0,"gamma": 1.0, "delta": 2.0, "peak_threshold": 0.8},
                                             test_size=0.30, validation_split=0.2, dropout_FF=0, standardize=False,
                                             split_method="time-series", seasonal_splits=12, batch_size=32, save_dir=None,
-                                            model_save_name="model", plot=False, plot_save_dir=None):
+                                            model_save_name="model", plot=False, plot_save_dir=None, confidence_area=True):
 
         # 0. Build the model
         model = arch.ModelArch(modelStructure=self.modelStructure).createRegressionModelArchitecture(mode="functional",
@@ -46,10 +46,11 @@ class TimeSeriesWrapper:
         evaluation = eval.ModelEvaluation(model=trained_model).evaluateModelPerformance()
 
         # 3. Predict
-        prediction_dataset = pred.ModelPrediction(model=trained_model).predictTimeSeriesWithTrainedModel(dataInDataFrameFormat=data,
+        prediction_dataset, upper_95, lower_95 = pred.ModelPrediction(model=trained_model).predictTimeSeriesWithTrainedModel(dataInDataFrameFormat=data,
                                                                                                          steps_ahead=prediction_steps_ahead,
                                                                                                          frequency=self.frequency,
-                                                                                                         date_column=self.date_column)
+                                                                                                         date_column=self.date_column,
+                                                                                                         confidence_area=confidence_area)
 
         # 4. Save Model Weights
         ms.ModelSaving(model=trained_model).saveModelWeights(save_dir=save_dir,
@@ -57,7 +58,13 @@ class TimeSeriesWrapper:
 
         # 4. Plot the prediction
         if plot:
+            if self.date_column != "index":
+                data = data.set_index(self.date_column)
             plt.figure(figsize = (15, 5))
             plt.plot(data.sort_values(by="Date", ascending=True)[self.target_variables][(-672 if self.frequency=="15min" else -168):])
             plt.plot(prediction_dataset[self.target_variables], color="red", linestyle="dashed")
+            if confidence_area:
+                plt.fill_between(lower_95.index, lower_95[trained_model["var_to_predict"]], upper_95[trained_model["var_to_predict"]], color="red", alpha=0.1)
+            if plot_save_dir is not None:
+                plt.savefig(plot_save_dir, dpi=500)
             plt.show()

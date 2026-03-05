@@ -1,23 +1,26 @@
 """Tester for Time Series Wrapper"""
 
 from Wrappers import TimeSeriesWrapper as ts
-from Dataset import Dataset as data
+import pandas as pd
 
 # 0. Data
-data = data.Dataset().getItalyEnergyProductionDataset(freq="15min")
+data = pd.read_excel("C:\\Users\\alder\\Downloads\\aggregate_dam_prices_by_bidding_zone.xlsx")
+data = data[data["Bidding_zone"]=="IT-NORD"].sort_values(by="Date", ascending=True).reset_index(drop=True)
 
 # 1. Model
-ts.TimeSeriesWrapper(modelStructure={"MultiSeasonConv1DGated": {"layers": [16, 16], "cycles": [96, 672],
-                                                                "mix_units": 32, "use_layer_norm": True, "baseline_kernel": 192,
-                                                                "use_cross_cycle_attention": True, "use_seasonal_memory": False},
+ts.TimeSeriesWrapper(modelStructure={"MultiSeasonConv1DGated": {"layers": [16, 16, 16, 16, 16, 16, 16], "cycles": [2, 4, 8, 16, 48, 96, 192],
+                                                                "use_layer_norm": True, "baseline_kernel": None,
+                                                                "use_cross_cycle_attention": False, "use_seasonal_memory": False},
                                       "LSTM": {"layers": [128, 64], "activation": "tanh", "dropout": 0.0},
                                       "FF": {"layers": [200, 200], "activation": "relu"}},
-                     feature_variables=["year","month","day","hour","minute"],
+                     feature_variables=["year","month","day","day_of_week","hour","minute"],
                      time_window=96,
-                     target_variables="Thermal",
-                     date_column="index",
+                     target_variables="price",
+                     date_column="Date",
                      frequency="15min").trainPredictAndSaveTimeSeriesModel(data=data,
                                                                            loss="MSE",  # "MSE" | "peak-aware-MSE"
+                                                                           split_method="time-series",  # "time-series" | "seasonal-time-series" | "random"
                                                                            epochs=200,
                                                                            prediction_steps_ahead=96,
-                                                                           plot=True)
+                                                                           plot=True,
+                                                                           plot_save_dir=r"C:\Users\alder\Downloads\load_prediction_15min.png")
