@@ -1,6 +1,7 @@
 """Class to load model from saved using model weights"""
 
 from ModelArch import ModelArch as arch
+from ModelPrediction import ModelPrediction as pred
 import json
 
 class ModelLoader:
@@ -8,7 +9,7 @@ class ModelLoader:
     def __init__(self):
         pass
 
-    def loadModel (self, modelPath):
+    def predictTSWithloadedModel (self, modelPath, data, steps_ahead, frequency, date_column, target_variable):
 
         print("INFO - Loading Model and feeding it with saved Weights...")
         # 0. Open the model directory, loading model + weights + modelStructure
@@ -31,6 +32,19 @@ class ModelLoader:
         model = modelObj["model"]
         model.load_weights(modelPath + "\\model_weights.weights.h5")
 
+        # 3. Create a new model Object
+        modelObjForPred = {}
+        modelObjForPred["var_to_predict"] = target_variable
+        modelObjForPred["params"] = model_info["params"]
+        modelObjForPred["time_window"] = model_info["time_window"]
+        modelObjForPred["feature_scaler"] = model_info["feature_scaler"]
+        modelObjForPred["target_scaler"] = model_info["target_scaler"]
+        modelObjForPred["model"] = model
 
-
-        return 0
+        # 4. Now, take care of data
+        pred_hat, pred_upper, pred_lower = pred.ModelPrediction(model=modelObjForPred).predictTimeSeriesWithTrainedModel(dataInDataFrameFormat=data,
+                                                                                                                          steps_ahead=steps_ahead,
+                                                                                                                          frequency=frequency,
+                                                                                                                          date_column=date_column,
+                                                                                                                          confidence_area=True)
+        return pred_hat, pred_upper, pred_lower

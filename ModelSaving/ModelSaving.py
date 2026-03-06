@@ -33,6 +33,12 @@ class ModelSaving:
             model_info["peak_aware_loss_params"] = self.model["peak_aware_loss_params"]
             model_info["mode"] = self.model["mode"]
             model_info["adjacency_matrix"] = self.model["adjacency_matrix"]
+            model_info["time_window"] = self.model["time_window"]
+            model_info["params"] = self.model["params"]
+            model_info["var_to_predict"] = self.model["var_to_predict"]
+            model_info["feature_scaler"] = self.model["feature_scaler"]
+            model_info["target_scaler"] = self.model["target_scaler"]
+
             with open(custom_directory + "\\model_info.json", "w") as f:
                 json.dump(model_info, f)
 
