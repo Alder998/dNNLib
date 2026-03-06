@@ -30,8 +30,7 @@ adjacency_matrix = vector.VectorModule(modelStructure=modelStructure).createAdja
 
 
 # 1. Create Model
-model = arch.ModelArch(modelStructure=modelStructure).createRegressionModelArchitecture(dropout_FF=0.2,
-                                                                                        mode="functional",
+model = arch.ModelArch(modelStructure=modelStructure).createRegressionModelArchitecture(mode="functional",
                                                                                         adjacency_matrix=adjacency_matrix,
                                                                                         input_shape=(time_window, adjacency_matrix.shape[0], len(feature_variables)))
 

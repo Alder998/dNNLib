@@ -17,7 +17,7 @@ class ModelArch:
         pass
 
     # Function to create and add to model FF layers
-    def createFeedForwardLayer(self, model=None, modelBuilder=None, mode="sequential", dropout_FF=None):
+    def createFeedForwardLayer(self, model=None, modelBuilder=None, mode="sequential"):
 
         # 1. Iterate for the FF layers specified by the user
         for l in range(len(self.modelStructure['FF']["layers"])):
@@ -33,11 +33,11 @@ class ModelArch:
                 raise Exception("Mode " + str(mode) + " not recognised!")
 
             # 1.2. Add the Dropout layer for FF
-            if dropout_FF is not None:
+            if "dropout" in self.modelStructure['FF']:
                 if mode == "functional":
-                    modelBuilder = tf.keras.layers.Dropout(dropout_FF)(modelBuilder)
+                    modelBuilder = tf.keras.layers.Dropout(self.modelStructure['FF']["dropout"])(modelBuilder)
                 elif mode == "sequential":
-                    model.add(tf.keras.layers.Dropout(dropout_FF))
+                    model.add(tf.keras.layers.Dropout(self.modelStructure['FF']["dropout"]))
                 else:
                     raise Exception("Mode " + str(mode) + " not recognised!")
 
@@ -198,7 +198,7 @@ class ModelArch:
             raise Exception("Mode " + str(mode) + " not recognised!")
 
     # Generalized method to create a Model with custom layers
-    def createModelArchitecture(self, dropout_FF=None, mode="sequential", adjacency_matrix=None, input_shape=(None, None, None, None)):
+    def createModelArchitecture(self, mode="sequential", adjacency_matrix=None, input_shape=(None, None, None, None)):
 
         # 0. Initialize tf model object
         if mode=="sequential":
@@ -211,7 +211,7 @@ class ModelArch:
 
             # 2. Add the FF layer, if required by the user
             if "FF" in self.modelStructure.keys():
-                self.createFeedForwardLayer(model, dropout_FF=dropout_FF)
+                self.createFeedForwardLayer(model)
 
             return model, None
 
@@ -307,13 +307,13 @@ class ModelArch:
             raise Exception("Mode " + str(mode) + " not recognised!")
 
     # Super-generalized function to have a Regression Model
-    def createRegressionModelArchitecture(self, mode="sequential", dropout_FF=None, adjacency_matrix=None, input_shape=(None, None, None, None), loss="MSE",
+    def createRegressionModelArchitecture(self, mode="sequential", adjacency_matrix=None, input_shape=(None, None, None, None), loss="MSE",
                                           peak_aware_loss_params={"alpha": 3.0, "beta":2.0, "gamma":1.0}):
 
         # Logging
         print("INFO - MODEL ARCHITECTURE: creating model Architecture for regression...")
         modelInfo = {}
-        modelBuilder, inputs = self.createModelArchitecture(mode=mode, dropout_FF=dropout_FF, adjacency_matrix=adjacency_matrix, input_shape=input_shape)
+        modelBuilder, inputs = self.createModelArchitecture(mode=mode, adjacency_matrix=adjacency_matrix, input_shape=input_shape)
         if mode=="sequential":
             modelBuilder.add(tf.keras.layers.Dense(1, activation='linear'))
         elif mode=="functional":
@@ -329,6 +329,10 @@ class ModelArch:
         modelInfo["model"] = modelBuilder
 
         # Add the typical loss used for regression problems (MSE)
+
+        # Store the loss name to be reused
+        modelInfo["loss_name"] = loss
+
         if loss == "MSE":
             loss = tf.keras.losses.MeanSquaredError()
         elif loss == "peak-aware-MSE":
@@ -340,11 +344,25 @@ class ModelArch:
                                                    )
         else:
             raise Exception("Loss " + str(loss) + " not recognised!")
-        # Add the loss to the model
-        modelInfo["loss"] = loss
 
+        # Add the problem (regression | classification)
+        modelInfo["problem"] = "regression"
         # Add the structure (functional to vectorize the dataset)
         modelInfo["modelStructure"] = self.modelStructure
+        # Add the loss to the modelInfo
+        modelInfo["loss"] = loss
+        # Add the input shape
+        modelInfo["input_shape"] = input_shape
+        # Add the mode (sequential or functional)
+        modelInfo["mode"] = mode
+        # Add the peak-aware params
+        modelInfo["peak_aware_loss_params"] = peak_aware_loss_params
+
+        # Add the Adjacency Matrix if not None
+        if adjacency_matrix is not None:
+            modelInfo["adjacency_matrix"] = adjacency_matrix
+        else:
+            modelInfo["adjacency_matrix"] = None
 
         return modelInfo
 

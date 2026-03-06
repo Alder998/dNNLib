@@ -25,8 +25,7 @@ model = arch.ModelArch(modelStructure={"MultiSeasonConv1DGated": {"layers": [16,
                                                                   "use_layer_norm": True, "baseline_kernel": None,
                                                                   "use_cross_cycle_attention": False, "use_seasonal_memory": False},
                                        "LSTM": {"layers": [128, 64], "activation": "tanh", "dropout": 0.0},
-                                       "FF": {"layers": [200, 200], "activation": "relu"}}).createRegressionModelArchitecture(mode="functional",
-                                                                                                                              dropout_FF=0.0,
+                                       "FF": {"layers": [200, 200], "activation": "relu", "dropout": 0.0}}).createRegressionModelArchitecture(mode="functional",
                                                                                                                               input_shape=(time_window, len(feature_variables)),
                                                                                                                               loss="MSE",   # "peak-aware-MSE" | "MSE"
                                                                                                                               peak_aware_loss_params={"alpha": 3.0, "beta": 2.0,
@@ -43,7 +42,7 @@ trained_model = train.ModelTraining(model=model).trainModel(dataInDataFrameForma
                                                             test_size=0.30,
                                                             batch_size=32,
                                                             validation_split=0.2,
-                                                            epochs=300)
+                                                            epochs=10)
 
 # 2. Evaluate the model
 evaluation = eval.ModelEvaluation(model=trained_model).evaluateModelPerformance()
