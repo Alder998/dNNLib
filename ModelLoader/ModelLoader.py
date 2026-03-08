@@ -2,6 +2,7 @@
 
 from ModelArch import ModelArch as arch
 from ModelPrediction import ModelPrediction as pred
+from UtilsService import Plots as plts
 import json
 
 class ModelLoader:
@@ -47,4 +48,10 @@ class ModelLoader:
                                                                                                                           frequency=frequency,
                                                                                                                           date_column=date_column,
                                                                                                                           confidence_area=True)
+
+        # 5. Attempt of plotting
+        plts.Plots().plotTimeSeriesPrediction(dataInDataFrameFormat=data, prediction_dataset=pred_hat, prediction_dataset_upper=pred_upper,
+                                              prediction_dataset_lower=pred_lower, variable=target_variable, frequency=frequency,
+                                              date_column=date_column, savePath=None)
+
         return pred_hat, pred_upper, pred_lower

@@ -87,3 +87,20 @@ class Plots:
             ani.save(savePath, writer="pillow", fps=5)
         # Show Plot
         plt.show()
+
+    # function to plot time series prediction
+    def plotTimeSeriesPrediction(self, dataInDataFrameFormat, prediction_dataset, prediction_dataset_upper,
+                                 prediction_dataset_lower,  variable, frequency="1h", date_column="date",savePath=None):
+
+        if date_column != "index":
+            dataInDataFrameFormat = dataInDataFrameFormat.set_index(date_column)
+        plt.figure(figsize=(15, 5))
+        if date_column != "index":
+            plt.plot(dataInDataFrameFormat.sort_values(by=date_column, ascending=True)[variable][(-672 if frequency == "15min" else -168):])
+        else:
+            plt.plot(dataInDataFrameFormat.sort_index(ascending=True)[variable][(-672 if frequency == "15min" else -168):])
+        plt.plot(prediction_dataset[variable], color="red", linestyle="dashed")
+        plt.fill_between(prediction_dataset_lower.index, prediction_dataset_lower[variable], prediction_dataset_upper[variable], color="red", alpha=0.1)
+        if savePath is not None:
+            plt.savefig(savePath, dpi=500)
+        plt.show()
