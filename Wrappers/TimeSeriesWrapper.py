@@ -6,6 +6,7 @@ from ModelTraining import ModelTraining as train
 from ModelEvaluation import ModelEvaluation as eval
 from ModelPrediction import ModelPrediction as pred
 from ModelSaving import ModelSaving as ms
+from UtilsService import Plots as plts
 
 class TimeSeriesWrapper:
 
@@ -25,7 +26,6 @@ class TimeSeriesWrapper:
 
         # 0. Build the model
         model = arch.ModelArch(modelStructure=self.modelStructure).createRegressionModelArchitecture(mode="functional",
-                                                                                                      dropout_FF=dropout_FF,
                                                                                                       input_shape=(self.time_window, len(self.feature_variables)),
                                                                                                       loss=loss,   # "peak-aware-MSE" | "MSE"
                                                                                                       peak_aware_loss_params=peak_aware_loss_params)
@@ -58,13 +58,8 @@ class TimeSeriesWrapper:
 
         # 4. Plot the prediction
         if plot:
-            if self.date_column != "index":
-                data = data.set_index(self.date_column)
-            plt.figure(figsize = (15, 5))
-            plt.plot(data.sort_values(by="Date", ascending=True)[self.target_variables][(-672 if self.frequency=="15min" else -168):])
-            plt.plot(prediction_dataset[self.target_variables], color="red", linestyle="dashed")
-            if confidence_area:
-                plt.fill_between(lower_95.index, lower_95[trained_model["var_to_predict"]], upper_95[trained_model["var_to_predict"]], color="red", alpha=0.1)
-            if plot_save_dir is not None:
-                plt.savefig(plot_save_dir, dpi=500)
-            plt.show()
+            plts.Plots().plotTimeSeriesPrediction(dataInDataFrameFormat=data, prediction_dataset=prediction_dataset,
+                                                  prediction_dataset_upper=upper_95,
+                                                  prediction_dataset_lower=lower_95, variable=self.target_variables,
+                                                  frequency=self.frequency,
+                                                  date_column=self.date_column, savePath=plot_save_dir)

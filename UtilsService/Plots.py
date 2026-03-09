@@ -14,10 +14,10 @@ class Plots:
     def plotGeospacePredictionFixedGrid (self, prediction_dataset, variable, date_column="date", colorScale="rainbow", savePath=None):
 
         print("INFO - Generating Animation...")
-        prediction_dataset[date_column] = pd.to_datetime(prediction_dataset[date_column])
+        prediction_dataset["date"] = pd.to_datetime(prediction_dataset["date"])
 
         # Mean
-        mean_ts = prediction_dataset.groupby(date_column)[variable].mean().sort_index()
+        mean_ts = prediction_dataset.groupby("date")[variable].mean().sort_index()
 
         # Set the grid
         lats = np.sort(prediction_dataset["latitude"].unique())
@@ -26,7 +26,7 @@ class Plots:
         lat_to_i = {v: i for i, v in enumerate(lats)}
         lon_to_j = {v: j for j, v in enumerate(lons)}
 
-        time_steps = sorted(prediction_dataset[date_column].unique())
+        time_steps = sorted(prediction_dataset["date"].unique())
 
         vmin = prediction_dataset[variable].min()
         vmax = prediction_dataset[variable].max()
@@ -40,7 +40,7 @@ class Plots:
 
         # Heatmap on fist graph
         grid0 = np.full((len(lats), len(lons)), np.nan)
-        first = prediction_dataset[prediction_dataset[date_column] == time_steps[0]]
+        first = prediction_dataset[prediction_dataset["date"] == time_steps[0]]
 
         for _, r in first.iterrows():
             grid0[lat_to_i[r["latitude"]], lon_to_j[r["longitude"]]] = r[variable]
@@ -69,7 +69,7 @@ class Plots:
         # Update function
         def update(frame):
             t = time_steps[frame]
-            subset = prediction_dataset[prediction_dataset[date_column] == t]
+            subset = prediction_dataset[prediction_dataset["date"] == t]
             grid = np.full((len(lats), len(lons)), np.nan)
             for _, r in subset.iterrows():
                 grid[lat_to_i[r["latitude"]], lon_to_j[r["longitude"]]] = r[variable]

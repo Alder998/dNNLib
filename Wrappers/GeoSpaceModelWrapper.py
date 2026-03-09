@@ -32,8 +32,7 @@ class GeoSpaceModelWrapper:
                                                                                                                       sigma=sigma_adjacency)
 
         # 1. Create Model
-        model = arch.ModelArch(modelStructure=self.modelStructure).createRegressionModelArchitecture(dropout_FF=dropout_FF,
-                                                                                                    mode="functional",
+        model = arch.ModelArch(modelStructure=self.modelStructure).createRegressionModelArchitecture(mode="functional",
                                                                                                     adjacency_matrix=adjacency_matrix,
                                                                                                     input_shape=(self.time_window,
                                                                                                                  adjacency_matrix.shape[0],
