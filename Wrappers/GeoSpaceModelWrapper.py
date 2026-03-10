@@ -21,7 +21,7 @@ class GeoSpaceModelWrapper:
         pass
 
     def trainPredictAndSaveGeospaceModel (self, data, prediction_steps_ahead, epochs, test_size=0.30, validation_split=0.2,
-                                          dropout_FF=0, sigma_adjacency=None, standardize=False, split_method="time-series",
+                                          sigma_adjacency=None, standardize=False, split_method="time-series",
                                           seasonal_splits=12, batch_size=32, save_dir=None, model_save_name="model", plot=False,
                                           plot_save_dir=None):
 
