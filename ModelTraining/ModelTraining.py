@@ -68,6 +68,12 @@ class ModelTraining:
         modelTrainingInfo["modelStructure"] = self.model["modelStructure"]
         modelTrainingInfo["feature_scaler"] = feature_scaler
         modelTrainingInfo["target_scaler"] = target_scaler
+        modelTrainingInfo["input_shape"] = self.model["input_shape"]
+        modelTrainingInfo["loss_name"] = self.model["loss_name"]
+        modelTrainingInfo["problem"] = self.model["problem"]
+        modelTrainingInfo["peak_aware_loss_params"] = self.model["peak_aware_loss_params"]
+        modelTrainingInfo["mode"] = self.model["mode"]
+        modelTrainingInfo["adjacency_matrix"] = self.model["adjacency_matrix"]
         modelTrainingInfo["space_variables"] = dataInDataFrameFormat[space_variables]
 
         # 4. Return for Evaluation
