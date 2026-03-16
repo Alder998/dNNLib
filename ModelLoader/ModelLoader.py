@@ -4,6 +4,7 @@ from ModelArch import ModelArch as arch
 from ModelPrediction import ModelPrediction as pred
 from UtilsService import Plots as plts
 import json
+import numpy as np
 
 class ModelLoader:
 
@@ -69,7 +70,7 @@ class ModelLoader:
         # 1. Re-Create the model
         if model_info["problem"] == "regression":
             modelObj = arch.ModelArch(modelStructure=model_structure).createRegressionModelArchitecture(mode=model_info["mode"],
-                                                                                                        adjacency_matrix=model_info["adjacency_matrix"],
+                                                                                                        adjacency_matrix=np.array(model_info["adjacency_matrix"]),
                                                                                                         input_shape=model_info["input_shape"],
                                                                                                         loss=model_info["loss_name"],
                                                                                                         peak_aware_loss_params=model_info["peak_aware_loss_params"])
@@ -87,6 +88,7 @@ class ModelLoader:
         modelObjForPred["time_window"] = model_info["time_window"]
         modelObjForPred["feature_scaler"] = model_info["feature_scaler"]
         modelObjForPred["target_scaler"] = model_info["target_scaler"]
+        modelObjForPred["space_variables"] = model_info["space_variables"]
         modelObjForPred["model"] = model
 
         # 4. Now, take care of data

@@ -32,12 +32,15 @@ class ModelSaving:
             model_info["loss_name"] = self.model["loss_name"]
             model_info["peak_aware_loss_params"] = self.model["peak_aware_loss_params"]
             model_info["mode"] = self.model["mode"]
-            model_info["adjacency_matrix"] = self.model["adjacency_matrix"]
+            model_info["adjacency_matrix"] = self.model["adjacency_matrix"].tolist()
             model_info["time_window"] = self.model["time_window"]
             model_info["params"] = self.model["params"]
             model_info["var_to_predict"] = self.model["var_to_predict"]
             model_info["feature_scaler"] = self.model["feature_scaler"]
             model_info["target_scaler"] = self.model["target_scaler"]
+            # Space variables must be added only for geo-space Model
+            if "space_variables" in self.model.keys():
+                model_info["space_variables"] = self.model["space_variables"]
 
             with open(custom_directory + "\\model_info.json", "w") as f:
                 json.dump(model_info, f)
