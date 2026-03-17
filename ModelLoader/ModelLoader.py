@@ -1,4 +1,5 @@
 """Class to load model from saved using model weights"""
+import pandas as pd
 
 from ModelArch import ModelArch as arch
 from ModelPrediction import ModelPrediction as pred
@@ -88,7 +89,10 @@ class ModelLoader:
         modelObjForPred["time_window"] = model_info["time_window"]
         modelObjForPred["feature_scaler"] = model_info["feature_scaler"]
         modelObjForPred["target_scaler"] = model_info["target_scaler"]
-        modelObjForPred["space_variables"] = model_info["space_variables"]
+        modelObjForPred["space_variables_list"] = model_info["space_variables_list"]
+        space_dataset = pd.read_csv(modelPath + "\\space_dataset.csv")
+        modelObjForPred["space_variables"] = space_dataset[modelObjForPred["space_variables_list"]]
+        modelObjForPred["modelStructure"] = model_structure
         modelObjForPred["model"] = model
 
         # 4. Now, take care of data

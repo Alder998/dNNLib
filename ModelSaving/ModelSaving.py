@@ -40,7 +40,8 @@ class ModelSaving:
             model_info["target_scaler"] = self.model["target_scaler"]
             # Space variables must be added only for geo-space Model
             if "space_variables" in self.model.keys():
-                model_info["space_variables"] = self.model["space_variables"]
+                self.model["space_variables"].to_csv(custom_directory + "\\space_dataset.csv")
+                model_info["space_variables_list"] = self.model["space_variables_list"]
 
             with open(custom_directory + "\\model_info.json", "w") as f:
                 json.dump(model_info, f)
