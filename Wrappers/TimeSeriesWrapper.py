@@ -22,7 +22,8 @@ class TimeSeriesWrapper:
                                             peak_aware_loss_params={"alpha": 3.0, "beta": 2.0,"gamma": 1.0, "delta": 2.0, "peak_threshold": 0.8},
                                             test_size=0.30, validation_split=0.2, dropout_FF=0, standardize=False,
                                             split_method="time-series", seasonal_splits=12, batch_size=32, save_dir=None,
-                                            model_save_name="model", plot=False, plot_save_dir=None, confidence_area=True):
+                                            model_save_name="model", plot=False, plot_save_dir=None, confidence_area=True,
+                                            target_division=1):
 
         # 0. Build the model
         model = arch.ModelArch(modelStructure=self.modelStructure).createRegressionModelArchitecture(mode="functional",
@@ -40,7 +41,8 @@ class TimeSeriesWrapper:
                                                                     test_size=test_size,
                                                                     batch_size=batch_size,
                                                                     validation_split=validation_split,
-                                                                    epochs=epochs)
+                                                                    epochs=epochs,
+                                                                    target_division=target_division)
 
         # 2. Evaluate the model
         evaluation = eval.ModelEvaluation(model=trained_model).evaluateModelPerformance()

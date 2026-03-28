@@ -23,7 +23,7 @@ class GeoSpaceModelWrapper:
     def trainPredictAndSaveGeospaceModel (self, data, prediction_steps_ahead, epochs, test_size=0.30, validation_split=0.2,
                                           sigma_adjacency=None, standardize=False, split_method="time-series",
                                           seasonal_splits=12, batch_size=32, save_dir=None, model_save_name="model", plot=False,
-                                          plot_save_dir=None):
+                                          plot_save_dir=None, target_division=1):
 
         # 0. Create Adjacency Matrix
         adjacency_matrix = vector.VectorModule(modelStructure=self.modelStructure).createAdjacencyMatrixFromDataFrame(dataInDataFrameFormat=data,
@@ -50,7 +50,8 @@ class GeoSpaceModelWrapper:
                                                                               test_size=test_size,
                                                                               batch_size=batch_size,
                                                                               validation_split=validation_split,
-                                                                              epochs=epochs)
+                                                                              epochs=epochs,
+                                                                              target_division=target_division)
         # 2. Evaluate Model
         evaluation = eval.ModelEvaluation(model=trained_model).evaluateModelPerformance(time_space=True)
 
