@@ -73,7 +73,7 @@ class ModelPrediction:
             actual_data = dataInDataFrameFormat[dataInDataFrameFormat.index.isin(prediction_dataFrame.index)][self.model["var_to_predict"]]
         else:
             actual_data = dataInDataFrameFormat[dataInDataFrameFormat[date_column].isin(prediction_dataFrame.index)].set_index(date_column)[self.model["var_to_predict"]]
-        # 2. Create the residuals (absolute values)
+        # 2. Create the residuals (absolute values) - Apply the target division as well
         residuals = prediction_dataFrame[pd.DataFrame(prediction_dataFrame).columns[0]] - pd.DataFrame(actual_data)[pd.DataFrame(actual_data).columns[0]]
         scores = np.abs(residuals.values)
         # 3. Generate the q areas (confidence) at 95%
@@ -89,7 +89,7 @@ class ModelPrediction:
                                                                   frequency=frequency)
         # 0.1. Create Confidence bars
         if confidence_area:
-            conficence_area = self.generateConfidenceBars(dataInDataFrameFormat=dataInDataFrameFormat, date_column=date_column, frequency=frequency)
+            conficence_area = self.generateConfidenceBars(dataInDataFrameFormat=dataInDataFrameFormat, date_column=date_column, frequency=frequency, target_division=target_division)
         else:
             conficence_area = 0
 

@@ -90,7 +90,7 @@ class Plots:
 
     # function to plot time series prediction
     def plotTimeSeriesPrediction(self, dataInDataFrameFormat, prediction_dataset, prediction_dataset_upper,
-                                 prediction_dataset_lower,  variable, frequency="1h", date_column="date",savePath=None):
+                                 prediction_dataset_lower,  variable, frequency="1h", date_column="date", savePath=None, target_division=1):
 
         if date_column != "index":
             dataInDataFrameFormat = dataInDataFrameFormat.set_index(date_column)

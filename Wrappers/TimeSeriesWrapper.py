@@ -65,4 +65,5 @@ class TimeSeriesWrapper:
                                                   prediction_dataset_upper=upper_95,
                                                   prediction_dataset_lower=lower_95, variable=self.target_variables,
                                                   frequency=self.frequency,
-                                                  date_column=self.date_column, savePath=plot_save_dir)
+                                                  date_column=self.date_column, savePath=plot_save_dir,
+                                                  target_division=target_division)

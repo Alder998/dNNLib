@@ -7,7 +7,8 @@ import pandas as pd
 data = pd.read_csv("C:\\Users\\alder\\Downloads\\energy_market_data_italia_1p.xlsx")
 data["Date"] = pd.to_datetime(data["Date"])
 data["Date"] = data["Date"].dt.tz_localize(None)
-data = data[(data["zone"]=="Italia Nord") & (data["lat"]==data["lat"][0]) & (data["lon"]==data["lon"][0])].sort_values(by="Date", ascending=True).reset_index(drop=True)
+data = data[(data["zone"]=="Italia Sicilia") & (data["lat"]==data[data["zone"] == "Italia Sicilia"]["lat"].reset_index(drop=True)[0]) &
+            (data["lon"]==data[data["zone"] == "Italia Sicilia"]["lon"].reset_index(drop=True)[0])].sort_values(by="Date", ascending=True).reset_index(drop=True)
 data = data.drop(columns = ["Unnamed: 0", "zone", "short_code", "code", "map_code", "lat", "lon"])
 
 #data = pd.read_csv(r"C:\Users\alder\Downloads\1mo_weather.csv")
@@ -15,7 +16,7 @@ data = data.drop(columns = ["Unnamed: 0", "zone", "short_code", "code", "map_cod
 #data["date"] = pd.to_datetime(data["date"])
 
 # 1. Model
-ts.TimeSeriesWrapper(modelStructure={"MultiSeasonConv1DGated": {"layers": [16], "cycles": [672],
+ts.TimeSeriesWrapper(modelStructure={"MultiSeasonConv1DGated": {"layers": [16, 16, 16, 16], "cycles": [16, 24, 48, 96],
                                                                 "use_layer_norm": True, "baseline_kernel": None,
                                                                 "use_cross_cycle_attention": False, "use_seasonal_memory": False},
                                       "LSTM": {"layers": [128, 64], "activation": "tanh", "dropout": 0.1},
