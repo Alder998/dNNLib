@@ -52,7 +52,8 @@ class TimeSeriesWrapper:
                                                                                                          steps_ahead=prediction_steps_ahead,
                                                                                                          frequency=self.frequency,
                                                                                                          date_column=self.date_column,
-                                                                                                         confidence_area=confidence_area)
+                                                                                                         confidence_area=confidence_area,
+                                                                                                         target_division=target_division)
 
         # 4. Save Model Weights
         ms.ModelSaving(model=trained_model).saveModelWeights(save_dir=save_dir,

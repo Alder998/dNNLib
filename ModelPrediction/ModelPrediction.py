@@ -81,7 +81,7 @@ class ModelPrediction:
 
         return conficence_area
 
-    def predictTimeSeriesWithTrainedModel (self, dataInDataFrameFormat, steps_ahead, frequency, date_column="index", confidence_area=True):
+    def predictTimeSeriesWithTrainedModel (self, dataInDataFrameFormat, steps_ahead, frequency, date_column="index", confidence_area=True, target_division=1):
 
         # 0. Create the future DataFrame
         future_dataframe, input_data = self.createFutureDataFrame(dataInDataFrameFormat=dataInDataFrameFormat,
@@ -98,6 +98,8 @@ class ModelPrediction:
             # 2. Predict with stored data
             prediction = self.model["model"].predict(input_data)
             prediction_dataFrame = pd.DataFrame(np.squeeze(prediction, axis=0)).set_axis([self.model["var_to_predict"]],axis=1).set_index(future_dataframe["Date"])
+            # 2.0.1. Multiply for target divider, if required
+            prediction_dataFrame = prediction_dataFrame * target_division
             # 2.1. De-standardize
             if self.model["target_scaler"] is not None:
                 prediction_dataFrame[self.model["var_to_predict"]] = self.model["target_scaler"].inverse_transform(pd.DataFrame(prediction_dataFrame[self.model["var_to_predict"]]))
@@ -106,6 +108,8 @@ class ModelPrediction:
             # 2. Predict with stored data
             prediction = self.model["model"].predict(input_data)
             prediction_dataFrame = pd.DataFrame(np.squeeze(prediction, axis=0)).set_axis([self.model["var_to_predict"]],axis=1).set_index(future_dataframe["Date"])
+            # 2.0.1. Multiply for target divider, if required
+            prediction_dataFrame = prediction_dataFrame * target_division
             # 2.1. De-standardize
             if self.model["target_scaler"] is not None:
                 prediction_dataFrame[self.model["var_to_predict"]] = self.model["target_scaler"].inverse_transform(pd.DataFrame(prediction_dataFrame[self.model["var_to_predict"]]))
@@ -125,6 +129,8 @@ class ModelPrediction:
                 # 2.3. Append to the full prediction DataFrame
                 full_predictions.append(prediction_dataFrame_chunk)
             prediction_dataFrame = pd.concat([df for df in full_predictions], axis=0)
+            # 2.3.1. Multiply for target divider, if required
+            prediction_dataFrame = prediction_dataFrame * target_division
             # 2.4. Truncate for not full batch steps
             if steps_ahead % self.model["time_window"] != 0:
                 prediction_dataFrame = prediction_dataFrame.iloc[:-(self.model["time_window"] - steps_remaining)]
