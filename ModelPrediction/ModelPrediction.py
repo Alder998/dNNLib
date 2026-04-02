@@ -89,7 +89,7 @@ class ModelPrediction:
                                                                   frequency=frequency)
         # 0.1. Create Confidence bars
         if confidence_area:
-            conficence_area = self.generateConfidenceBars(dataInDataFrameFormat=dataInDataFrameFormat, date_column=date_column, frequency=frequency, target_division=target_division)
+            conficence_area = self.generateConfidenceBars(dataInDataFrameFormat=dataInDataFrameFormat, date_column=date_column, frequency=frequency)
         else:
             conficence_area = 0
 
