@@ -1,4 +1,4 @@
-"""Class to load some dataset to test NN performance"""
+"""Class to Process the datasets for time series and/or other scopes"""
 
 import pandas as pd
 
@@ -7,51 +7,38 @@ class Dataset:
     def __init__(self):
         pass
 
-    # 0. Italy Energy Production Dataset
-    def getItalyEnergyProductionDataset (self, freq="15m"):
+    # Process Dataset for Time Series Models
+    def processDatasetForTimeSeries (self, dataInDataFrameFormat, date_column, target_column, lag_series,
+                                     date_column_format="%Y-%m-%d", frequency="1h"):
 
-        # 0.0. get some data (2025 15 min-power production in Italy)
-        if freq == "15min":
-            dataset = pd.read_excel(r"C:\\Users\\alder\\Downloads\\Export-DownloadCenterFile-20260103-165403.xlsx")
-        elif freq == "1h":
-            dataset = pd.read_excel(r"C:\\Users\\alder\\Downloads\\2021-2025_hourly_prod.xlsx")
-        else:
-            raise Exception("Frequency " + str(freq) + " is not supported.")
-        # 0.1. Clean data
-        energy_prod_italy = []
-        for category in dataset["Primary Source"].unique():
-            dfc = dataset[["Date", "Actual Generation"]][dataset["Primary Source"] == category].reset_index(drop=True)
-            dfc = dfc.rename(columns={"Actual Generation": category})
-            energy_prod_italy.append(dfc.set_index("Date"))
-        energy_prod_italy = pd.concat([df for df in energy_prod_italy], axis=1)
-        energy_prod_italy["year"] = energy_prod_italy.index.year
-        energy_prod_italy["month"] = energy_prod_italy.index.month
-        energy_prod_italy["day"] = energy_prod_italy.index.day
-        energy_prod_italy["day_of_week"] = energy_prod_italy.index.dayofweek
-        energy_prod_italy["hour"] = energy_prod_italy.index.hour
-        energy_prod_italy["minute"] = energy_prod_italy.index.minute
+        # 0.0. Check the compliance of the time-frequency
+        if frequency not in ["1mo", "1d", "15min", "1min"]:
+            raise Exception("Frequency not implemented! Available: '1mo', '1d', '15min', '1min'.")
+        # 0.1. Convert to date column to datetime
+        dataInDataFrameFormat[date_column] = pd.to_datetime(dataInDataFrameFormat[date_column], format=date_column_format)
 
-        return energy_prod_italy
+        # 0.2 First, add the time params from the date column ("year","quarter","month","day","day_of_week","hour","minute")
+        if "year" not in dataInDataFrameFormat.columns:
+            dataInDataFrameFormat["year"] = dataInDataFrameFormat[date_column].dt.year
+        if "quarter" not in dataInDataFrameFormat.columns:
+            dataInDataFrameFormat["quarter"] = dataInDataFrameFormat[date_column].dt.quarter
+        if "month" not in dataInDataFrameFormat.columns:
+            dataInDataFrameFormat["month"] = dataInDataFrameFormat[date_column].dt.month
+        if "day" not in dataInDataFrameFormat.columns:
+            dataInDataFrameFormat["day"] = dataInDataFrameFormat[date_column].dt.day
+        if "day_of_week" not in dataInDataFrameFormat.columns:
+            dataInDataFrameFormat["day_of_week"] = dataInDataFrameFormat[date_column].dt.day_of_week
+        if "hour" not in dataInDataFrameFormat.columns:
+            dataInDataFrameFormat["hour"] = dataInDataFrameFormat[date_column].dt.hour
+        if "minute" not in dataInDataFrameFormat.columns:
+            dataInDataFrameFormat["minute"] = dataInDataFrameFormat[date_column].dt.minute
 
-    def loadWeatherDataset (self, size="1m"):
+        # 0.1. Sort by Date column
+        dataInDataFrameFormat = dataInDataFrameFormat.sort_values(by=date_column, ascending=True).reset_index(drop=True)
 
-        # 0.0. Load the .csv data
-        if size=="1m":
-            wdata = pd.read_csv("C:\\Users\\alder\\Downloads\\1m_weather.xlsx")
-        elif size=="3m":
-            wdata = pd.read_csv("C:\\Users\\alder\\Downloads\\3m_weather.csv")
-        elif size=="1y":
-            wdata = pd.read_csv("C:\\Users\\alder\\Downloads\\1y_weather.csv")
-        else:
-            raise Exception("Size " + str(size) + " is not supported.")
+        # 1. Add lags to the target variable, according specified by user
+        if len(lag_series) != 0:
+            for lag_number in lag_series:
+                dataInDataFrameFormat[target_column + "_" + str(lag_number) + "_lag"] = dataInDataFrameFormat[target_column].shift(lag_number)
 
-        # 0.1. Convert the date columns to datetime
-        wdata["date"] = pd.to_datetime(wdata["date"])
-
-        # 0.2. Create time variables
-        wdata["year"] = wdata["date"].dt.year
-        wdata["month"] = wdata["date"].dt.month
-        wdata["day"] = wdata["date"].dt.day
-        wdata["hour"] = wdata["date"].dt.hour
-
-        return wdata.sort_values(by="date", ascending=True).reset_index(drop=True)
+        return dataInDataFrameFormat.dropna().reset_index(drop=True)

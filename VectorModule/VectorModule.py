@@ -33,7 +33,13 @@ class VectorModule:
 
     # Data Processing for feed forward (easiest one)
     def processDataForFF (self, dataInDataFrameFormat, feature_variables, target_variables, test_size, standardize = False, split_method="random",
-                          seasonal_splits=10, target_division=1):
+                          seasonal_splits=10, target_division=1, lag_series=[]):
+
+        # S. if lags are present, add them to the features
+        if len(lag_series) != 0:
+            lag_features = [target_variables + "_" + str(lag_number) + "_lag" for lag_number in lag_series]
+            for l in lag_features:
+                feature_variables.append(l)
 
         # 0.0. Standardize the data
         if standardize:
@@ -88,7 +94,14 @@ class VectorModule:
 
     # Data Processing for recurrent NN
     def processDataForRecurrentNet (self, dataInDataFrameFormat, feature_variables, target_variables, test_size, time_window, standardize=False,
-                                    split_method="random", seasonal_splits=10, prediction=False, target_division=1):
+                                    split_method="random", seasonal_splits=10, prediction=False, target_division=1, lag_series=[]):
+
+        # S. if lags are present, add them to the features
+        if len(lag_series) != 0:
+            lag_features = [target_variables + "_" + str(lag_number) + "_lag" for lag_number in lag_series]
+            for l in lag_features:
+                if l not in feature_variables:
+                    feature_variables.append(l)
 
         # 0.0. Standardize the data
         if standardize:
@@ -157,7 +170,7 @@ class VectorModule:
 
     # Data Processing for geo-spatial Model
     def processDataForGeospatialModel (self, dataInDataFrameFormat, feature_variables, target_variables, test_size, time_window, space_variables, standardize=False,
-                                       split_method="random", seasonal_splits=10, prediction=False, target_division=1):
+                                       split_method="random", seasonal_splits=10, prediction=False, target_division=1, lag_series=[]):
 
         # 0. Isolate single time-series for each coord
         space_col = "_".join(space_variables) if len(space_variables) > 1 else space_variables[0]
@@ -198,7 +211,7 @@ class VectorModule:
                 dfc = dataInDataFrameFormat[dataInDataFrameFormat[space_col] == uniqueCoord].reset_index(drop=True)
                 features_array_i, target_array_i, feature_scaler_i, target_scaler_i = self.processDataForRecurrentNet(
                     dfc, feature_variables, target_variables, test_size, time_window, standardize, split_method,
-                    seasonal_splits, prediction=True, target_division=target_division)
+                    seasonal_splits, prediction=True, target_division=target_division, lag_series=lag_series)
                 features_array.append(features_array_i)
                 target_array.append(target_array_i)
                 feature_scaler.append(feature_scaler_i)
@@ -246,7 +259,7 @@ class VectorModule:
 
     # Main function for data processing
     def processDataFrame (self, dataInDataFrameFormat, feature_variables, target_variables, test_size, time_window, standardize=False,
-                          split_method="random", seasonal_splits=10, timeSpace=False, space_variables=None, prediction=False, target_division=1):
+                          split_method="random", seasonal_splits=10, timeSpace=False, space_variables=None, prediction=False, target_division=1, lag_series=[]):
 
         # 0. initialize
         features_train = None
@@ -258,11 +271,11 @@ class VectorModule:
 
         # Process according model Structure
         if "FF" in self.modelStructure.keys():
-            features_train, features_test, target_train, target_test, feature_scaler, target_scaler = self.processDataForFF(dataInDataFrameFormat, feature_variables, target_variables, test_size, standardize, split_method, target_division=target_division)
+            features_train, features_test, target_train, target_test, feature_scaler, target_scaler = self.processDataForFF(dataInDataFrameFormat, feature_variables, target_variables, test_size, standardize, split_method, target_division=target_division, lag_series=lag_series)
         if "LSTM" in self.modelStructure.keys():
-            features_train, features_test, target_train, target_test, feature_scaler, target_scaler = self.processDataForRecurrentNet(dataInDataFrameFormat, feature_variables, target_variables, test_size, time_window, standardize, split_method, seasonal_splits, prediction=prediction, target_division=target_division)
+            features_train, features_test, target_train, target_test, feature_scaler, target_scaler = self.processDataForRecurrentNet(dataInDataFrameFormat, feature_variables, target_variables, test_size, time_window, standardize, split_method, seasonal_splits, prediction=prediction, target_division=target_division, lag_series=lag_series)
         if "Conv2D" in self.modelStructure.keys():
-            features_train, features_test, target_train, target_test, feature_scaler, target_scaler = self.processDataForRecurrentNet(dataInDataFrameFormat, feature_variables, target_variables, test_size, time_window, standardize, split_method, seasonal_splits, prediction=prediction, target_division=target_division)
+            features_train, features_test, target_train, target_test, feature_scaler, target_scaler = self.processDataForRecurrentNet(dataInDataFrameFormat, feature_variables, target_variables, test_size, time_window, standardize, split_method, seasonal_splits, prediction=prediction, target_division=target_division, lag_series=lag_series)
 
         # Ad-hoc config for time-space
         if timeSpace:

@@ -1,6 +1,6 @@
 """Class to ease the Time Series Predictions"""
 
-import matplotlib.pyplot as plt
+from Dataset import Dataset as dt
 from ModelArch import ModelArch as arch
 from ModelTraining import ModelTraining as train
 from ModelEvaluation import ModelEvaluation as eval
@@ -10,24 +10,33 @@ from UtilsService import Plots as plts
 
 class TimeSeriesWrapper:
 
-    def __init__(self, modelStructure, feature_variables, time_window, target_variables, date_column, frequency):
+    def __init__(self, modelStructure, feature_variables, time_window, target_variables, date_column, frequency, lags):
         self.modelStructure = modelStructure
         self.feature_variables = feature_variables
         self.time_window = time_window
         self.target_variables = target_variables
         self.date_column = date_column
         self.frequency = frequency
+        self.lags = lags
 
     def trainPredictAndSaveTimeSeriesModel (self, data, prediction_steps_ahead, epochs, loss="MSE",
                                             peak_aware_loss_params={"alpha": 3.0, "beta": 2.0,"gamma": 1.0, "delta": 2.0, "peak_threshold": 0.8},
-                                            test_size=0.30, validation_split=0.2, dropout_FF=0, standardize=False,
+                                            test_size=0.30, validation_split=0.2, standardize=False,
                                             split_method="time-series", seasonal_splits=12, batch_size=32, save_dir=None,
                                             model_save_name="model", plot=False, plot_save_dir=None, confidence_area=True,
-                                            target_division=1):
+                                            target_division=1, date_column_format="%Y-%m-%d %H:%M:%S"):
+
+        # 0.0. Process the data
+        data = dt.Dataset().processDatasetForTimeSeries(dataInDataFrameFormat=data,
+                                                        date_column=self.date_column,
+                                                        target_column=self.target_variables,
+                                                        date_column_format=date_column_format,
+                                                        frequency=self.frequency,
+                                                        lag_series=self.lags)
 
         # 0. Build the model
         model = arch.ModelArch(modelStructure=self.modelStructure).createRegressionModelArchitecture(mode="functional",
-                                                                                                      input_shape=(self.time_window, len(self.feature_variables)),
+                                                                                                      input_shape=(self.time_window, len(self.feature_variables) + len(self.lags)),
                                                                                                       loss=loss,   # "peak-aware-MSE" | "MSE"
                                                                                                       peak_aware_loss_params=peak_aware_loss_params)
         # 1. Compile and train
@@ -42,7 +51,8 @@ class TimeSeriesWrapper:
                                                                     batch_size=batch_size,
                                                                     validation_split=validation_split,
                                                                     epochs=epochs,
-                                                                    target_division=target_division)
+                                                                    target_division=target_division,
+                                                                    lag_series=self.lags)
 
         # 2. Evaluate the model
         evaluation = eval.ModelEvaluation(model=trained_model).evaluateModelPerformance()
@@ -53,7 +63,8 @@ class TimeSeriesWrapper:
                                                                                                          frequency=self.frequency,
                                                                                                          date_column=self.date_column,
                                                                                                          confidence_area=confidence_area,
-                                                                                                         target_division=target_division)
+                                                                                                         target_division=target_division,
+                                                                                                         lag_series=self.lags)
 
         # 4. Save Model Weights
         ms.ModelSaving(model=trained_model).saveModelWeights(save_dir=save_dir,

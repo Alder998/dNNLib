@@ -10,7 +10,7 @@ class ModelPrediction:
         pass
 
     # Function to create the steps-ahead dataFrame
-    def createFutureDataFrame(self, dataInDataFrameFormat, date_column, frequency, scope="prediction"):
+    def createFutureDataFrame(self, dataInDataFrameFormat, date_column, frequency, lag_series=[1, 24, 48, 96], scope="prediction"):
 
         if date_column == "index":
             date_idx = dataInDataFrameFormat.index
@@ -46,6 +46,13 @@ class ModelPrediction:
         if (self.model["feature_scaler"][0] if isinstance(self.model["feature_scaler"], list) else self.model["feature_scaler"]) is not None:
             future_dataframe[self.model["params"]] = self.model["feature_scaler"].fit_transform(future_dataframe[self.model["params"]])
 
+        # 4. Process dataFrame for lags
+        if len(lag_series) != 0:
+            df_for_lags = dataInDataFrameFormat[[self.model["var_to_predict"] + "_" + str(lag_number) + "_lag" for lag_number in lag_series]]
+            df_for_lags = df_for_lags[-self.model["time_window"]:].reset_index(drop=True)
+            # 5. Add lags
+            future_dataframe = pd.concat([future_dataframe, df_for_lags], axis=1)
+
         # 3. Process the future dataframe with the batch size
         input_data = np.array(future_dataframe[self.model["params"]])
         batch_size_LSTM = int(input_data.shape[0] / self.model["time_window"])
@@ -57,12 +64,13 @@ class ModelPrediction:
 
         return future_dataframe, input_data
 
-    def generateConfidenceBars (self, dataInDataFrameFormat, frequency, date_column="index"):
+    def generateConfidenceBars (self, dataInDataFrameFormat, frequency, date_column="index", target_division=1, lag_series=[1, 24, 48, 96]):
 
         print("INFO -- Generating confidence area...")
         future_dataframe, input_data = self.createFutureDataFrame(dataInDataFrameFormat=dataInDataFrameFormat,
                                                                   date_column=date_column,
                                                                   frequency=frequency,
+                                                                  lag_series=lag_series,
                                                                   scope="confidence")
         # 0. predict
         prediction = self.model["model"].predict(input_data)
@@ -70,9 +78,9 @@ class ModelPrediction:
 
         # 1. Get the actual data from the dataset
         if date_column == "index":
-            actual_data = dataInDataFrameFormat[dataInDataFrameFormat.index.isin(prediction_dataFrame.index)][self.model["var_to_predict"]]
+            actual_data = dataInDataFrameFormat[dataInDataFrameFormat.index.isin(prediction_dataFrame.index)][self.model["var_to_predict"]]/target_division
         else:
-            actual_data = dataInDataFrameFormat[dataInDataFrameFormat[date_column].isin(prediction_dataFrame.index)].set_index(date_column)[self.model["var_to_predict"]]
+            actual_data = dataInDataFrameFormat[dataInDataFrameFormat[date_column].isin(prediction_dataFrame.index)].set_index(date_column)[self.model["var_to_predict"]]/target_division
         # 2. Create the residuals (absolute values) - Apply the target division as well
         residuals = prediction_dataFrame[pd.DataFrame(prediction_dataFrame).columns[0]] - pd.DataFrame(actual_data)[pd.DataFrame(actual_data).columns[0]]
         scores = np.abs(residuals.values)
@@ -81,15 +89,21 @@ class ModelPrediction:
 
         return conficence_area
 
-    def predictTimeSeriesWithTrainedModel (self, dataInDataFrameFormat, steps_ahead, frequency, date_column="index", confidence_area=True, target_division=1):
+    def predictTimeSeriesWithTrainedModel (self, dataInDataFrameFormat, steps_ahead, frequency, date_column="index",
+                                           confidence_area=True, target_division=1, lag_series=[1, 24, 48, 96]):
 
         # 0. Create the future DataFrame
         future_dataframe, input_data = self.createFutureDataFrame(dataInDataFrameFormat=dataInDataFrameFormat,
                                                                   date_column=date_column,
-                                                                  frequency=frequency)
+                                                                  frequency=frequency,
+                                                                  lag_series=lag_series)
         # 0.1. Create Confidence bars
         if confidence_area:
-            conficence_area = self.generateConfidenceBars(dataInDataFrameFormat=dataInDataFrameFormat, date_column=date_column, frequency=frequency)
+            conficence_area = self.generateConfidenceBars(dataInDataFrameFormat=dataInDataFrameFormat,
+                                                          date_column=date_column,
+                                                          frequency=frequency,
+                                                          target_division=target_division,
+                                                          lag_series=lag_series)
         else:
             conficence_area = 0
 
@@ -138,8 +152,8 @@ class ModelPrediction:
             raise Exception("Error in computing prediction steps!")
 
         # 3. Add the confidence area
-        upper_prediction = prediction_dataFrame + conficence_area
-        lower_prediction = prediction_dataFrame - conficence_area
+        upper_prediction = prediction_dataFrame + (conficence_area * target_division)
+        lower_prediction = prediction_dataFrame - (conficence_area * target_division)
 
         return prediction_dataFrame, upper_prediction, lower_prediction
 
