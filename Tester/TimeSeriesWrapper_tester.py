@@ -13,10 +13,9 @@ data = data[(data["zone"]==zone) & (data["lat"]==data[data["zone"] == zone]["lat
 data = data.drop(columns = ["Unnamed: 0", "zone", "short_code", "code", "map_code", "lat", "lon"])
 
 # 1. Model
-# "Actual Load_24_lag","Actual Load_48_lag"
-ts.TimeSeriesWrapper(modelStructure={"MultiSeasonConv1DGated": {"layers": [16], "cycles": [96],
-                                                                "use_layer_norm": True, "baseline_kernel": 96,
-                                                                "use_cross_cycle_attention": True, "use_seasonal_memory": False},
+ts.TimeSeriesWrapper(modelStructure={"MultiSeasonConv1DGated": {"layers": [16, 16, 16], "cycles": [16, 48, 96],
+                                                                "use_layer_norm": True, "baseline_kernel": None,
+                                                                "use_cross_cycle_attention": False, "use_seasonal_memory": False},
                                       "LSTM": {"layers": [128, 64], "activation": "tanh", "dropout": 0.0},
                                       "FF": {"layers": [200, 200], "activation": "relu", "dropout": 0.0}},
                      feature_variables=["month","day","day_of_week","hour","minute"],
@@ -24,7 +23,7 @@ ts.TimeSeriesWrapper(modelStructure={"MultiSeasonConv1DGated": {"layers": [16], 
                      target_variables="Actual Load",
                      date_column="Date",
                      frequency="15min",
-                     lags=[1, 24, 48]
+                     lags=[24, 48, 96]
                      ).trainPredictAndSaveTimeSeriesModel(data=data,
                                                           date_column_format="%Y-%m-%d %H:%M:%S",
                                                           loss="MSE",  # "MSE" | "peak-aware-MSE"

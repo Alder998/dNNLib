@@ -1,9 +1,7 @@
 from Wrappers import GeoSpaceModelWrapper as geo
 import pandas as pd
 
-data = pd.read_csv(r"C:\Users\alder\Downloads\energy_market_data_1p.xlsx")
-data = data[data["map_code"].isin(['NO-NO1','NO-NO2','NO-NO3','NO-NO4','SE-SE1','SE-SE2','SE-SE3','SE-SE4',
-                                   'FI','DE','FR','PL','ES'])].reset_index(drop=True)
+data = pd.read_csv(r"C:\Users\alder\Downloads\energy_market_data_italia_1p.xlsx")
 
 geo.GeoSpaceModelWrapper(modelStructure={"GraphGRU": {"layers": [64], "activation": "tanh"}},
                          space_variables=["lat","lon"],

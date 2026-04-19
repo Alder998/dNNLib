@@ -10,7 +10,7 @@ class ModelPrediction:
         pass
 
     # Function to create the steps-ahead dataFrame
-    def createFutureDataFrame(self, dataInDataFrameFormat, date_column, frequency, lag_series=[1, 24, 48, 96], scope="prediction"):
+    def createFutureDataFrame(self, dataInDataFrameFormat, date_column, frequency, lag_series=[], scope="prediction"):
 
         if date_column == "index":
             date_idx = dataInDataFrameFormat.index
@@ -158,7 +158,7 @@ class ModelPrediction:
         return prediction_dataFrame, upper_prediction, lower_prediction
 
     # Function to predict with geospatial model
-    def predictGeoSpatialWithTrainedModel (self, dataInDataFrameFormat, steps_ahead, frequency, date_column="index"):
+    def predictGeoSpatialWithTrainedModel (self, dataInDataFrameFormat, steps_ahead, frequency, date_column="index", target_division=1, lag_series=[]):
 
         # 0. For each coordinate, create future dataFrame
         unique_spaceVar = self.model["space_variables"].astype(str).agg('_'.join, axis=1) if len(self.model["space_variables"].columns) > 1 else self.model["space_variables"]
@@ -187,7 +187,8 @@ class ModelPrediction:
                                                                                      standardize=False,
                                                                                      split_method="random",
                                                                                      seasonal_splits=0,
-                                                                                     prediction=True)
+                                                                                     prediction=True,
+                                                                                     target_division=target_division)
         model_prediction = self.model["model"].predict(features_array.transpose(0, 1, 3, 2))
 
         # Create a DataFrame + populate Axis with time and space variables

@@ -78,6 +78,7 @@ class ModelTraining:
         modelTrainingInfo["adjacency_matrix"] = self.model["adjacency_matrix"]
         modelTrainingInfo["space_variables"] = dataInDataFrameFormat[space_variables]
         modelTrainingInfo["space_variables_list"] = space_variables
+        modelTrainingInfo["target_division"] = target_division
 
         # 4. Return for Evaluation
         return modelTrainingInfo
