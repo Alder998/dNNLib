@@ -59,8 +59,8 @@ class GeoSpaceModelWrapper:
         prediction_dataset = pred.ModelPrediction(model=trained_model).predictGeoSpatialWithTrainedModel(dataInDataFrameFormat=data,
                                                                                                          steps_ahead=prediction_steps_ahead,
                                                                                                          frequency=self.frequency,
-                                                                                                         date_column=self.date_column
-                                                                                                         )
+                                                                                                         date_column=self.date_column,
+                                                                                                         target_division=target_division)
         # 4. Save Model Weights
         ms.ModelSaving(model=trained_model).saveModelWeights(
                        save_dir=save_dir,

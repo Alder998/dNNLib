@@ -90,7 +90,7 @@ class ModelPrediction:
         return conficence_area
 
     def predictTimeSeriesWithTrainedModel (self, dataInDataFrameFormat, steps_ahead, frequency, date_column="index",
-                                           confidence_area=True, target_division=1, lag_series=[1, 24, 48, 96]):
+                                           confidence_area=True, target_division=1, lag_series=[]):
 
         # 0. Create the future DataFrame
         future_dataframe, input_data = self.createFutureDataFrame(dataInDataFrameFormat=dataInDataFrameFormat,
@@ -212,5 +212,7 @@ class ModelPrediction:
         dataPiled = dataPiled.reset_index(drop=True)
         # Re-order
         dataPiled = dataPiled[["date", "latitude", "longitude", self.model["var_to_predict"]]]
+        # Multiply for target division param to preserve the variable scale
+        dataPiled[self.model["var_to_predict"]] = dataPiled[self.model["var_to_predict"]] * target_division
 
         return dataPiled
