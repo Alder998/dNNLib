@@ -185,7 +185,7 @@ class VectorModule:
             target_scaler = []
             for uniqueCoord in dataInDataFrameFormat[space_col].unique():
                 dfc = dataInDataFrameFormat[dataInDataFrameFormat[space_col] == uniqueCoord].reset_index(drop=True)
-                features_train_i, features_test_i, target_train_i, target_test_i, feature_scaler_i, target_scaler_i = self.processDataForRecurrentNet(dfc, feature_variables, target_variables, test_size, time_window, standardize, split_method, seasonal_splits, target_division=target_division)
+                features_train_i, features_test_i, target_train_i, target_test_i, feature_scaler_i, target_scaler_i = self.processDataForRecurrentNet(dfc, feature_variables, target_variables, test_size, time_window, standardize, split_method, seasonal_splits, target_division=target_division, lag_series=lag_series)
                 features_train.append(features_train_i)
                 features_test.append(features_test_i)
                 target_train.append(target_train_i)
@@ -279,6 +279,6 @@ class VectorModule:
 
         # Ad-hoc config for time-space
         if timeSpace:
-            features_train, features_test, target_train, target_test, feature_scaler, target_scaler = self.processDataForGeospatialModel(dataInDataFrameFormat, feature_variables, target_variables, test_size, time_window, space_variables, standardize, split_method, seasonal_splits, prediction=prediction, target_division=target_division)
+            features_train, features_test, target_train, target_test, feature_scaler, target_scaler = self.processDataForGeospatialModel(dataInDataFrameFormat, feature_variables, target_variables, test_size, time_window, space_variables, standardize, split_method, seasonal_splits, prediction=prediction, target_division=target_division, lag_series=lag_series)
 
         return features_train, features_test, target_train, target_test, feature_scaler, target_scaler

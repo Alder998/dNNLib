@@ -17,7 +17,9 @@ class Plots:
         prediction_dataset["date"] = pd.to_datetime(prediction_dataset["date"])
 
         # Mean
-        mean_ts = prediction_dataset.groupby("date")[variable].mean().sort_index()
+        #mean_ts = prediction_dataset.groupby("date")[variable].mean().sort_index()
+        # first obs
+        mean_ts = prediction_dataset[(prediction_dataset["latitude"] == prediction_dataset["latitude"].unique()[0]) & (prediction_dataset["longitude"] == prediction_dataset["longitude"].unique()[0])].set_index("date")[variable].sort_index()
 
         # Set the grid
         lats = np.sort(prediction_dataset["latitude"].unique())
@@ -60,7 +62,7 @@ class Plots:
 
         # Static Mean Graph
         ax_ts.plot(mean_ts.index, mean_ts.values)
-        ax_ts.set_ylabel("Mean")
+        ax_ts.set_ylabel("first observation (to check the trend)")
         ax_ts.set_xlabel("Date")
 
         # Vertical line to follow Animation

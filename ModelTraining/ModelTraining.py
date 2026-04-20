@@ -45,11 +45,11 @@ class ModelTraining:
         return modelTrainingInfo
 
     def trainGeospatialModel (self, dataInDataFrameFormat, feature_variables, target_variables, test_size, validation_split,
-                              standardize, batch_size, epochs, time_window, space_variables, split_method="random", seasonal_splits=10, target_division=1):
+                              standardize, batch_size, epochs, time_window, space_variables, split_method="random", seasonal_splits=10, target_division=1, lag_series=[]):
 
         # 0. Make pandas dataFrame array, to be used for training
         print("INFO - MODEL TRAINING: Vectorizing the data from a DataFrame format...")
-        features_train, features_test, target_train, target_test, feature_scaler, target_scaler = vector.VectorModule(modelStructure=self.model["modelStructure"]).processDataFrame(dataInDataFrameFormat, feature_variables, target_variables, test_size, time_window, standardize, split_method, seasonal_splits, timeSpace=True, space_variables=space_variables, target_division=target_division)
+        features_train, features_test, target_train, target_test, feature_scaler, target_scaler = vector.VectorModule(modelStructure=self.model["modelStructure"]).processDataFrame(dataInDataFrameFormat, feature_variables, target_variables, test_size, time_window, standardize, split_method, seasonal_splits, timeSpace=True, space_variables=space_variables, target_division=target_division, lag_series=lag_series)
         modelTrainingInfo = {}
         print("INFO - MODEL TRAINING: Compilation and training...")
         # 1. Compile the model
