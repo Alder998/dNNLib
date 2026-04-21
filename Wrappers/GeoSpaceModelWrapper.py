@@ -46,7 +46,7 @@ class GeoSpaceModelWrapper:
                                                                                                     adjacency_matrix=adjacency_matrix,
                                                                                                     input_shape=(self.time_window,
                                                                                                                  adjacency_matrix.shape[0],
-                                                                                                                 len(self.feature_variables)))
+                                                                                                                 len(self.feature_variables) + len(self.lags)))
 
         # 2. Train Model
         trained_model = train.ModelTraining(model=model).trainGeospatialModel(dataInDataFrameFormat=data,
