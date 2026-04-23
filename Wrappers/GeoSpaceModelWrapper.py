@@ -71,7 +71,8 @@ class GeoSpaceModelWrapper:
                                                                                                          steps_ahead=prediction_steps_ahead,
                                                                                                          frequency=self.frequency,
                                                                                                          date_column=self.date_column,
-                                                                                                         target_division=target_division)
+                                                                                                         target_division=target_division,
+                                                                                                         lag_series=self.lags)
         # 4. Save Model Weights
         ms.ModelSaving(model=trained_model).saveModelWeights(
                        save_dir=save_dir,

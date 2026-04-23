@@ -166,7 +166,7 @@ class ModelPrediction:
         print("PREDICTION - Creating Geospatial Prediction Dataset...")
         for coord in unique_spaceVar.unique():
             future_dataframe, input_data = self.createFutureDataFrame(dataInDataFrameFormat=dataInDataFrameFormat, date_column=date_column,
-                                                 frequency=frequency)
+                                                 frequency=frequency, lag_series=lag_series)
             future_dataframe["space_unique"] = coord
             timeSpaceDataFrame.append(future_dataframe)
         timeSpaceDataFrame = pd.concat([df for df in timeSpaceDataFrame], axis=0).reset_index(drop=True)
