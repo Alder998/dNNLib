@@ -189,12 +189,21 @@ class ModelPrediction:
                                                                                      seasonal_splits=0,
                                                                                      prediction=True,
                                                                                      target_division=target_division)
-        model_prediction = self.model["model"].predict(features_array.transpose(0, 1, 3, 2))
-
-        # Create a DataFrame + populate Axis with time and space variables
-        model_prediction_df = pd.DataFrame(np.squeeze(np.squeeze(model_prediction, axis=3), axis=0)).T
-        model_prediction_df = model_prediction_df.set_index(pd.Series(unique_spaceVar.unique()))
-        model_prediction_df = model_prediction_df.set_axis(pd.Series(timeSpaceDataFrame["Date"].unique()), axis=1)
+        # One-batch prediction: prediction window == time window
+        if steps_ahead == self.model["time_window"] != 0:
+            model_prediction = self.model["model"].predict(features_array.transpose(0, 1, 3, 2))
+            # Create a DataFrame + populate Axis with time and space variables
+            model_prediction_df = pd.DataFrame(np.squeeze(np.squeeze(model_prediction, axis=3), axis=0)).T
+            model_prediction_df = model_prediction_df.set_index(pd.Series(unique_spaceVar.unique()))
+            model_prediction_df = model_prediction_df.set_axis(pd.Series(timeSpaceDataFrame["Date"].unique()), axis=1)
+        elif steps_ahead < self.model["time_window"]:
+            model_prediction = self.model["model"].predict(features_array.transpose(0, 1, 3, 2))
+            # Create a DataFrame + populate Axis with time and space variables
+            model_prediction_df = pd.DataFrame(np.squeeze(np.squeeze(model_prediction, axis=3), axis=0)).T
+            model_prediction_df = model_prediction_df.set_index(pd.Series(unique_spaceVar.unique()))
+            model_prediction_df = model_prediction_df.set_axis(pd.Series(timeSpaceDataFrame["Date"].unique()), axis=1)
+            # "Cut" the prediction taking only the first columns
+            model_prediction_df = model_prediction_df[model_prediction_df.columns[:steps_ahead]]
 
         # Create Latitude + Longitude columns + "pile" the coordinates on axis=0
         dataPiled = []
