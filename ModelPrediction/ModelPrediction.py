@@ -2,6 +2,7 @@
 import numpy as np
 import pandas as pd
 from VectorModule import VectorModule as v
+from Dataset import Dataset as data
 
 class ModelPrediction:
 
@@ -17,6 +18,15 @@ class ModelPrediction:
         else:
             date_idx = dataInDataFrameFormat[date_column]
         if scope == "prediction":
+            future_dataframe = pd.DataFrame(pd.date_range(start=date_idx.max(), periods=self.model["time_window"], freq=frequency)).set_axis(["Date"], axis=1)
+        elif scope == "multiple-prediction":
+            # Re-create lags (the prediction data you are passing will not work otherwise)
+            dataInDataFrameFormat = data.Dataset().processDatasetForTimeSeries(dataInDataFrameFormat=dataInDataFrameFormat,
+                                                                                date_column=date_column,
+                                                                                target_column=self.model["var_to_predict"],
+                                                                                date_column_format="%Y-%m-%d %H:%M:%S",
+                                                                                frequency=frequency,
+                                                                                lag_series=lag_series)
             future_dataframe = pd.DataFrame(pd.date_range(start=date_idx.max(), periods=self.model["time_window"], freq=frequency)).set_axis(["Date"], axis=1)
         elif scope == "confidence":
             future_dataframe = pd.DataFrame(pd.date_range(start=pd.Series(date_idx).head(self.model["time_window"])[self.model["time_window"]-1],
@@ -64,7 +74,7 @@ class ModelPrediction:
 
         return future_dataframe, input_data
 
-    def generateConfidenceBars (self, dataInDataFrameFormat, frequency, date_column="index", target_division=1, lag_series=[1, 24, 48, 96]):
+    def generateConfidenceBars (self, dataInDataFrameFormat, frequency, date_column="index", target_division=1, lag_series=[]):
 
         print("INFO -- Generating confidence area...")
         future_dataframe, input_data = self.createFutureDataFrame(dataInDataFrameFormat=dataInDataFrameFormat,
@@ -157,8 +167,8 @@ class ModelPrediction:
 
         return prediction_dataFrame, upper_prediction, lower_prediction
 
-    # Function to predict with geospatial model
-    def predictGeoSpatialWithTrainedModel (self, dataInDataFrameFormat, steps_ahead, frequency, date_column="index", target_division=1, lag_series=[]):
+    # Utils function to prepare dataframe for geo-space prediction
+    def prepareDataForGeoSpacePrediction (self, dataInDataFrameFormat, date_column, frequency, lag_series, target_division, scope="prediction"):
 
         # 0. For each coordinate, create future dataFrame
         unique_spaceVar = self.model["space_variables"].astype(str).agg('_'.join, axis=1) if len(self.model["space_variables"].columns) > 1 else self.model["space_variables"]
@@ -166,7 +176,7 @@ class ModelPrediction:
         print("PREDICTION - Creating Geospatial Prediction Dataset...")
         for coord in unique_spaceVar.unique():
             future_dataframe, input_data = self.createFutureDataFrame(dataInDataFrameFormat=dataInDataFrameFormat, date_column=date_column,
-                                                 frequency=frequency, lag_series=lag_series)
+                                                 frequency=frequency, lag_series=lag_series, scope=scope)
             future_dataframe["space_unique"] = coord
             timeSpaceDataFrame.append(future_dataframe)
         timeSpaceDataFrame = pd.concat([df for df in timeSpaceDataFrame], axis=0).reset_index(drop=True)
@@ -178,7 +188,8 @@ class ModelPrediction:
         timeSpaceDataFrame[self.model["var_to_predict"]] = 0
 
         # Transform into array
-        features_array, target_array, feature_scaler, target_scaler = v.VectorModule(modelStructure=self.model["modelStructure"]).processDataForGeospatialModel(dataInDataFrameFormat=timeSpaceDataFrame,
+        features_array, target_array, feature_scaler, target_scaler = v.VectorModule(modelStructure=self.model["modelStructure"]).processDataForGeospatialModel(
+                                                                                     dataInDataFrameFormat=timeSpaceDataFrame,
                                                                                      feature_variables=self.model["params"],
                                                                                      target_variables=self.model["var_to_predict"],
                                                                                      test_size=None,
@@ -189,20 +200,19 @@ class ModelPrediction:
                                                                                      seasonal_splits=0,
                                                                                      prediction=True,
                                                                                      target_division=target_division)
-        # One-batch prediction: prediction window == time window
-        if steps_ahead == self.model["time_window"] != 0:
-            model_prediction = self.model["model"].predict(features_array.transpose(0, 1, 3, 2))
-            # Create a DataFrame + populate Axis with time and space variables
-            model_prediction_df = pd.DataFrame(np.squeeze(np.squeeze(model_prediction, axis=3), axis=0)).T
-            model_prediction_df = model_prediction_df.set_index(pd.Series(unique_spaceVar.unique()))
-            model_prediction_df = model_prediction_df.set_axis(pd.Series(timeSpaceDataFrame["Date"].unique()), axis=1)
-        elif steps_ahead < self.model["time_window"]:
-            model_prediction = self.model["model"].predict(features_array.transpose(0, 1, 3, 2))
-            # Create a DataFrame + populate Axis with time and space variables
-            model_prediction_df = pd.DataFrame(np.squeeze(np.squeeze(model_prediction, axis=3), axis=0)).T
-            model_prediction_df = model_prediction_df.set_index(pd.Series(unique_spaceVar.unique()))
-            model_prediction_df = model_prediction_df.set_axis(pd.Series(timeSpaceDataFrame["Date"].unique()), axis=1)
-            # "Cut" the prediction taking only the first columns
+
+        return features_array, target_array, feature_scaler, target_scaler, unique_spaceVar, timeSpaceDataFrame
+
+    # Utils function to predict geo-space returning DataFrame, saving precious 6 lines of code
+    def predictGeoSpaceDataFrame (self, features_array, unique_spaceVar, timeSpaceDataFrame, target_division, steps_ahead):
+        # Use stored model for prediction
+        model_prediction = self.model["model"].predict(features_array.transpose(0, 1, 3, 2))
+        # Create a DataFrame + populate Axis with time and space variables
+        model_prediction_df = pd.DataFrame(np.squeeze(np.squeeze(model_prediction, axis=3), axis=0)).T
+        model_prediction_df = model_prediction_df.set_index(pd.Series(unique_spaceVar.unique()))
+        model_prediction_df = model_prediction_df.set_axis(pd.Series(timeSpaceDataFrame["Date"].unique()), axis=1)
+        # Truncates in case of LESS time steps for prediction than time window
+        if steps_ahead < self.model["time_window"]:
             model_prediction_df = model_prediction_df[model_prediction_df.columns[:steps_ahead]]
 
         # Create Latitude + Longitude columns + "pile" the coordinates on axis=0
@@ -225,3 +235,53 @@ class ModelPrediction:
         dataPiled[self.model["var_to_predict"]] = dataPiled[self.model["var_to_predict"]] * target_division
 
         return dataPiled
+
+    # Function to predict with geospatial model
+    def predictGeoSpatialWithTrainedModel (self, dataInDataFrameFormat, steps_ahead, frequency, date_column="index", target_division=1, lag_series=[]):
+
+        # Prepare data for prediction
+        features_array, target_array, feature_scaler, target_scaler, unique_spaceVar, timeSpaceDataFrame = self.prepareDataForGeoSpacePrediction(
+                                                                                                            dataInDataFrameFormat=dataInDataFrameFormat,
+                                                                                                            date_column=date_column,
+                                                                                                            frequency=frequency,
+                                                                                                            lag_series=lag_series,
+                                                                                                            target_division=target_division)
+
+        # Case for time steps == or < time_window
+        if (steps_ahead == self.model["time_window"]) | (steps_ahead < self.model["time_window"]):
+            model_prediction_df = self.predictGeoSpaceDataFrame(features_array=features_array,
+                                                                unique_spaceVar=unique_spaceVar,
+                                                                timeSpaceDataFrame=timeSpaceDataFrame,
+                                                                target_division=target_division,
+                                                                steps_ahead=steps_ahead)
+            return model_prediction_df
+        # Most difficult case: when prediction steps ahead > time_window
+        elif steps_ahead > self.model["time_window"]:
+            # define how many times one-batch prediction the model has to perform
+            prediction_chunks = int(steps_ahead / self.model["time_window"]) + 1  # If 1.1 -> 1 + 1 = 2 chuncks
+            # Perform the first prediction
+            aggregated_model_prediction = []
+            model_prediction_df = self.predictGeoSpaceDataFrame(features_array=features_array,
+                                                                unique_spaceVar=unique_spaceVar,
+                                                                timeSpaceDataFrame=timeSpaceDataFrame,
+                                                                target_division=target_division,
+                                                                steps_ahead=steps_ahead)
+            aggregated_model_prediction.append(model_prediction_df)
+            # Then, perform the calculation again upon the prediction dataFrame
+            for ch in range(prediction_chunks-1):
+                marginal_steps_ahead = np.abs((self.model["time_window"] * (ch+1)) - steps_ahead)
+                features_array, target_array, feature_scaler, target_scaler, unique_spaceVar, timeSpaceDataFrame = self.prepareDataForGeoSpacePrediction(
+                                                                                                                    dataInDataFrameFormat=model_prediction_df.rename(columns={"date":"Date"}),
+                                                                                                                    date_column=date_column,
+                                                                                                                    frequency=frequency,
+                                                                                                                    lag_series=lag_series,
+                                                                                                                    target_division=target_division,
+                                                                                                                    scope="multiple-prediction")
+                model_prediction_df = self.predictGeoSpaceDataFrame(features_array=features_array, unique_spaceVar=unique_spaceVar,
+                                                                    timeSpaceDataFrame=timeSpaceDataFrame, target_division=target_division,
+                                                                    steps_ahead=marginal_steps_ahead)
+                aggregated_model_prediction.append(model_prediction_df)
+            aggregated_model_prediction = pd.concat([df for df in aggregated_model_prediction], axis=0).reset_index(drop=True)
+            return aggregated_model_prediction
+        else:
+            raise Exception("Prediction steps and time window are not compatible! Time window: " + str(self.model["time_window"]) + " - Steps ahead: " + str(steps_ahead))
