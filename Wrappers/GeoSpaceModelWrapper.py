@@ -80,8 +80,10 @@ class GeoSpaceModelWrapper:
 
         # 5. Plot prediction
         if plot:
-            plots.Plots().plotGeospacePredictionFixedGrid(prediction_dataset=prediction_dataset,
-                                                         variable=self.target_variables,
-                                                         date_column=self.date_column,
-                                                         colorScale="rainbow",
-                                                         savePath=plot_save_dir)
+            plots.Plots().plotGeospacePredictionFixedGrid(dataInDataFrameFormat=data,
+                                                          prediction_dataset=prediction_dataset,
+                                                          variable=self.target_variables,
+                                                          date_column=self.date_column,
+                                                          space_variables=self.space_variables,
+                                                          colorScale="rainbow",
+                                                          savePath=plot_save_dir)

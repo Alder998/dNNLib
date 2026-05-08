@@ -60,7 +60,8 @@ ms.ModelSaving(model=trained_model).saveModelWeights(save_dir="D:\\PythonProject
                                                      model_name="geospace_model")
 
 # 5. Plot prediction
-plot.Plots().plotGeospacePredictionFixedGrid(prediction_dataset=prediction_dataset,
+plot.Plots().plotGeospacePredictionFixedGrid(dataInDataFrameFormat=weatherData,
+                                             prediction_dataset=prediction_dataset,
                                              variable=target_variables,
                                              date_column=date_column,
                                              colorScale="rainbow",

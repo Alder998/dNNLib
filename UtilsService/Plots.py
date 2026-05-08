@@ -11,7 +11,8 @@ class Plots:
     def __init__(self):
         pass
 
-    def plotGeospacePredictionFixedGrid (self, prediction_dataset, variable, date_column="date", colorScale="rainbow", savePath=None):
+    def plotGeospacePredictionFixedGrid (self, dataInDataFrameFormat, prediction_dataset, variable, date_column="date",
+                                         colorScale="rainbow", savePath=None, space_variables=["latitude", "longitude"]):
 
         print("INFO - Generating Animation...")
         prediction_dataset["date"] = pd.to_datetime(prediction_dataset["date"])
@@ -19,8 +20,10 @@ class Plots:
         # Mean
         #mean_ts = prediction_dataset.groupby("date")[variable].mean().sort_index()
         # first obs
-        mean_ts = prediction_dataset[(prediction_dataset["latitude"] == prediction_dataset["latitude"].unique()[0]) & (prediction_dataset["longitude"] == prediction_dataset["longitude"].unique()[0])].set_index("date")[variable].sort_index()
-
+        static_line_graph_data_pred = prediction_dataset[(prediction_dataset["latitude"] == prediction_dataset["latitude"].unique()[0]) & (prediction_dataset["longitude"] == prediction_dataset["longitude"].unique()[0])].set_index("date")[variable].sort_index()
+        static_line_graph_data_input = dataInDataFrameFormat[(dataInDataFrameFormat[space_variables[0]] == dataInDataFrameFormat[space_variables[0]].unique()[0]) &
+                                                             (dataInDataFrameFormat[space_variables[1]] == dataInDataFrameFormat[space_variables[1]].unique()[0])].set_index(date_column)[variable].sort_index()
+        static_line_graph_data_input=static_line_graph_data_input[-96:]
         # Set the grid
         lats = np.sort(prediction_dataset["latitude"].unique())
         lons = np.sort(prediction_dataset["longitude"].unique())
@@ -60,8 +63,9 @@ class Plots:
         cbar = plt.colorbar(im, ax=ax_map)
         cbar.set_label(variable)
 
-        # Static Mean Graph
-        ax_ts.plot(mean_ts.index, mean_ts.values)
+        # Static Mean Graph with the last observations taken from the input dataset
+        ax_ts.plot(static_line_graph_data_input.index, static_line_graph_data_input.values, color="blue", label="observed")
+        ax_ts.plot(static_line_graph_data_pred.index, static_line_graph_data_pred.values, color="red", linestyle="dashed", label="predicted")
         ax_ts.set_ylabel("first observation (to check the trend)")
         ax_ts.set_xlabel("Date")
 
@@ -88,6 +92,7 @@ class Plots:
         if savePath is not None:
             ani.save(savePath, writer="pillow", fps=5)
         # Show Plot
+        plt.legend()
         plt.show()
 
     # function to plot time series prediction
@@ -106,3 +111,6 @@ class Plots:
         if savePath is not None:
             plt.savefig(savePath, dpi=500)
         plt.show()
+
+    # Function to plot having a geopandas geometry element
+    #def plotGeoSpaceWithGPGeometry (self, dataInDataFrameFormat, prediction_dataset, variable, date_column="date", colorScale="rainbow", savePath=None):

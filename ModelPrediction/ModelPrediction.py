@@ -258,7 +258,7 @@ class ModelPrediction:
         # Most difficult case: when prediction steps ahead > time_window
         elif steps_ahead > self.model["time_window"]:
             # define how many times one-batch prediction the model has to perform
-            prediction_chunks = int(steps_ahead / self.model["time_window"]) + 1  # If 1.1 -> 1 + 1 = 2 chuncks
+            prediction_chunks = (int(steps_ahead / self.model["time_window"])) if steps_ahead % self.model["time_window"] == 0 else (int(steps_ahead / self.model["time_window"]) + 1) # If 1.1 -> 1 + 1 = 2 chuncks
             # Perform the first prediction
             aggregated_model_prediction = []
             model_prediction_df = self.predictGeoSpaceDataFrame(features_array=features_array,

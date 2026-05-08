@@ -11,7 +11,7 @@ geo.GeoSpaceModelWrapper(modelStructure={"GraphGRU": {"layers": [64], "activatio
                          date_column="Date",
                          frequency="15min",
                          lags=[24, 48, 72]).trainPredictAndSaveGeospaceModel(data=data,
-                                                                             epochs=200,
+                                                                             epochs=10,
                                                                              prediction_steps_ahead=288,
                                                                              plot=True,
                                                                              save_dir="D:\\PythonProjects-Storage\\dNNLib\\Tester\\stored_models",

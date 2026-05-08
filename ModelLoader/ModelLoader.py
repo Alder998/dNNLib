@@ -102,7 +102,8 @@ class ModelLoader:
                                                                                                   date_column=date_column)
 
         # 5. Attempt of plotting
-        plts.Plots().plotGeospacePredictionFixedGrid(prediction_dataset=pred_hat,
+        plts.Plots().plotGeospacePredictionFixedGrid(dataInDataFrameFormat=data,
+                                                     prediction_dataset=pred_hat,
                                                      variable=target_variable, date_column=date_column, savePath=None)
 
         return pred_hat
