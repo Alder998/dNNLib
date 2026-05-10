@@ -12,7 +12,7 @@ class Dataset:
                                      date_column_format="%Y-%m-%d", frequency="1h"):
 
         # 0.0. Check the compliance of the time-frequency
-        if frequency not in ["1mo", "1d", "15min", "1min"]:
+        if frequency not in ["1mo", "1d", "1h", "15min", "1min"]:
             raise Exception("Frequency not implemented! Available: '1mo', '1d', '15min', '1min'.")
         # 0.1. Convert to date column to datetime
         dataInDataFrameFormat[date_column] = pd.to_datetime(dataInDataFrameFormat[date_column], format=date_column_format)
