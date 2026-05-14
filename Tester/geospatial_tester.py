@@ -1,6 +1,5 @@
 """Geospatial Model tester"""
 
-from Dataset import Dataset as data
 from ModelArch import ModelArch as arch
 from ModelTraining import ModelTraining as train
 from ModelEvaluation import ModelEvaluation as eval
@@ -8,8 +7,9 @@ from ModelPrediction import ModelPrediction as pred
 from ModelSaving import ModelSaving as ms
 from VectorModule import VectorModule as vector
 from UtilsService import Plots as plot
+import pandas as pd
 
-weatherData = data.Dataset().loadWeatherDataset(size="1m")
+weatherData = pd.read_csv(r"C:\Users\alder\Downloads\3m_weather.csv")
 
 # 0.0. Set the input
 modelStructure = {"GConv": {"layers": [32], "activation": "relu"},
