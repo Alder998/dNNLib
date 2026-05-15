@@ -8,7 +8,6 @@ from ModelTraining import ModelTraining as train
 from ModelEvaluation import ModelEvaluation as eval
 from ModelPrediction import ModelPrediction as pred
 from ModelSaving import ModelSaving as ms
-from Tester.geospatial_tester import modelStructure
 from VectorModule import VectorModule as vector
 
 class MLPWrapper:
@@ -23,7 +22,7 @@ class MLPWrapper:
                     validation_split=0.2, target_division=1):
 
         # 0. Create Architecture
-        model = arch.ModelArch(modelStructure=modelStructure).createRegressionModelArchitecture(mode="sequential")
+        model = arch.ModelArch(modelStructure=self.modelStructure).createRegressionModelArchitecture(mode="sequential")
         # 1. Train Model
         trained_model = train.ModelTraining(model=model).trainModel(dataInDataFrameFormat=data,
                                                                     feature_variables=self.feature_variables,
