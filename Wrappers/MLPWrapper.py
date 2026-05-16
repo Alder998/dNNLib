@@ -37,7 +37,7 @@ class MLPWrapper:
                                                                     epochs=epochs,
                                                                     target_division=target_division,
                                                                     lag_series=[])
-        evaluation = eval.ModelEvaluation(model=trained_model).evaluateModelPerformance(time_space=True)
+        evaluation = eval.ModelEvaluation(model=trained_model).evaluateModelPerformance(time_space=False)
 
         return model
 
