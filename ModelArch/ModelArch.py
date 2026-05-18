@@ -307,7 +307,7 @@ class ModelArch:
             raise Exception("Mode " + str(mode) + " not recognised!")
 
     # Super-generalized function to have a Regression Model
-    def createRegressionModelArchitecture(self, mode="sequential", adjacency_matrix=None, input_shape=(None, None, None, None), loss="MSE",
+    def createRegressionModelArchitecture(self, mode="sequential", target_variables=1, adjacency_matrix=None, input_shape=(None, None, None, None), loss="MSE",
                                           peak_aware_loss_params={"alpha": 3.0, "beta":2.0, "gamma":1.0}):
 
         # Logging
@@ -315,9 +315,9 @@ class ModelArch:
         modelInfo = {}
         modelBuilder, inputs = self.createModelArchitecture(mode=mode, adjacency_matrix=adjacency_matrix, input_shape=input_shape)
         if mode=="sequential":
-            modelBuilder.add(tf.keras.layers.Dense(1, activation='linear'))
+            modelBuilder.add(tf.keras.layers.Dense(target_variables, activation='linear'))
         elif mode=="functional":
-            outputs = tf.keras.layers.Dense(1, activation='linear')(modelBuilder)
+            outputs = tf.keras.layers.Dense(target_variables, activation='linear')(modelBuilder)
 
             # Add the Permute layer in case of time-space prediction
             if ("GConv" in self.modelStructure.keys()) & ("LSTM" in self.modelStructure.keys()):

@@ -5,7 +5,7 @@ import pandas as pd
 
 # 0. Data
 zone = "Italia Sicilia"
-data = pd.read_csv("C:\\Users\\alder\\Downloads\\energy_market_data_italia_1p.xlsx")
+data = pd.read_csv("C:\\Users\\alder\\Downloads\\energy_market_data_italia_1p.csv")
 data["Date"] = pd.to_datetime(data["Date"])
 data["Date"] = data["Date"].dt.tz_localize(None)
 data = data[(data["zone"]==zone) & (data["lat"]==data[data["zone"] == zone]["lat"].reset_index(drop=True)[0]) &
@@ -20,16 +20,16 @@ ts.TimeSeriesWrapper(modelStructure={"MultiSeasonConv1DGated": {"layers": [16, 1
                                       "FF": {"layers": [200, 200], "activation": "relu", "dropout": 0.0}},
                      feature_variables=["month","day","day_of_week","hour","minute"],
                      time_window=96,
-                     target_variables="Actual Load",
+                     target_variables=["Actual Load", "DAM Price"],
                      date_column="Date",
                      frequency="15min",
-                     lags=[24, 48, 96]
+                     lags=[]
                      ).trainPredictAndSaveTimeSeriesModel(data=data,
                                                           date_column_format="%Y-%m-%d %H:%M:%S",
                                                           loss="MSE",  # "MSE" | "peak-aware-MSE"
                                                           split_method="time-series",  # "time-series" | "seasonal-time-series" | "random"
                                                           seasonal_splits=12,
-                                                          epochs=200,
+                                                          epochs=10,
                                                           prediction_steps_ahead=96,
                                                           plot=True,
                                                           plot_save_dir=r"C:\Users\alder\Downloads\temp_prediction_1h.png",

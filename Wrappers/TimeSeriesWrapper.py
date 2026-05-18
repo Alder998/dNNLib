@@ -38,7 +38,8 @@ class TimeSeriesWrapper:
         model = arch.ModelArch(modelStructure=self.modelStructure).createRegressionModelArchitecture(mode="functional",
                                                                                                       input_shape=(self.time_window, len(self.feature_variables) + len(self.lags)),
                                                                                                       loss=loss,   # "peak-aware-MSE" | "MSE"
-                                                                                                      peak_aware_loss_params=peak_aware_loss_params)
+                                                                                                      peak_aware_loss_params=peak_aware_loss_params,
+                                                                                                      target_variables=len(self.target_variables))
         # 1. Compile and train
         trained_model = train.ModelTraining(model=model).trainModel(dataInDataFrameFormat=data,
                                                                     feature_variables=self.feature_variables,
