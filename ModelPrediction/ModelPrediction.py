@@ -58,10 +58,11 @@ class ModelPrediction:
 
         # 4. Process dataFrame for lags
         if len(lag_series) != 0:
-            df_for_lags = dataInDataFrameFormat[[self.model["var_to_predict"] + "_" + str(lag_number) + "_lag" for lag_number in lag_series]]
-            df_for_lags = df_for_lags[-self.model["time_window"]:].reset_index(drop=True)
-            # 5. Add lags
-            future_dataframe = pd.concat([future_dataframe, df_for_lags], axis=1)
+            for tc in self.model["var_to_predict"]:
+                df_for_lags = dataInDataFrameFormat[[tc + "_" + str(lag_number) + "_lag" for lag_number in lag_series]]
+                df_for_lags = df_for_lags[-self.model["time_window"]:].reset_index(drop=True)
+                # 5. Add lags
+                future_dataframe = pd.concat([future_dataframe, df_for_lags], axis=1)
 
         # 3. Process the future dataframe with the batch size
         input_data = np.array(future_dataframe[self.model["params"]])

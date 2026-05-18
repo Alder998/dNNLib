@@ -39,6 +39,7 @@ class Dataset:
         # 1. Add lags to the target variable, according specified by user
         if len(lag_series) != 0:
             for lag_number in lag_series:
-                dataInDataFrameFormat[target_column + "_" + str(lag_number) + "_lag"] = dataInDataFrameFormat[target_column].shift(lag_number)
+                for tc in target_column:
+                    dataInDataFrameFormat[tc + "_" + str(lag_number) + "_lag"] = dataInDataFrameFormat[tc].shift(lag_number)
 
         return dataInDataFrameFormat.dropna().reset_index(drop=True)

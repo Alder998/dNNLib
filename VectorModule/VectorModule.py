@@ -37,9 +37,10 @@ class VectorModule:
 
         # S. if lags are present, add them to the features
         if len(lag_series) != 0:
-            lag_features = [target_variables + "_" + str(lag_number) + "_lag" for lag_number in lag_series]
-            for l in lag_features:
-                feature_variables.append(l)
+            for tc in target_variables:
+                lag_features = [tc + "_" + str(lag_number) + "_lag" for lag_number in lag_series]
+                for l in lag_features:
+                    feature_variables.append(l)
 
         # 0.0. Standardize the data
         if standardize:
@@ -98,10 +99,11 @@ class VectorModule:
 
         # S. if lags are present, add them to the features
         if len(lag_series) != 0:
-            lag_features = [target_variables + "_" + str(lag_number) + "_lag" for lag_number in lag_series]
-            for l in lag_features:
-                if l not in feature_variables:
-                    feature_variables.append(l)
+            for tc in target_variables:
+                lag_features = [tc + "_" + str(lag_number) + "_lag" for lag_number in lag_series]
+                for l in lag_features:
+                    if l not in feature_variables:
+                        feature_variables.append(l)
 
         # 0.0. Standardize the data
         if standardize:
