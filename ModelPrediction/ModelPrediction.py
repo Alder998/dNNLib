@@ -85,19 +85,20 @@ class ModelPrediction:
                                                                   scope="confidence")
         # 0. predict
         prediction = self.model["model"].predict(input_data)
-        prediction_dataFrame = pd.DataFrame(np.squeeze(prediction, axis=0)).set_axis([self.model["var_to_predict"]],axis=1).set_index(future_dataframe["Date"])
+        prediction_dataFrame = pd.DataFrame(np.squeeze(prediction, axis=0)).set_axis(self.model["var_to_predict"],axis=1).set_index(future_dataframe["Date"])
 
         # 1. Get the actual data from the dataset
         if date_column == "index":
             actual_data = dataInDataFrameFormat[dataInDataFrameFormat.index.isin(prediction_dataFrame.index)][self.model["var_to_predict"]]/target_division
         else:
             actual_data = dataInDataFrameFormat[dataInDataFrameFormat[date_column].isin(prediction_dataFrame.index)].set_index(date_column)[self.model["var_to_predict"]]/target_division
-        # 2. Create the residuals (absolute values) - Apply the target division as well
-        residuals = prediction_dataFrame[pd.DataFrame(prediction_dataFrame).columns[0]] - pd.DataFrame(actual_data)[pd.DataFrame(actual_data).columns[0]]
+        # 2. Create the residuals (absolute values) - Apply the target division as well - iterate for each one of the target variable
+        residuals = prediction_dataFrame - actual_data
         scores = np.abs(residuals.values)
         # 3. Generate the q areas (confidence) at 95%
-        conficence_area = np.quantile(scores, 0.95)
+        conficence_area = np.quantile(scores, 0.95, axis=0)
 
+        # 3.1. Expected shape is going to be (var_to_predict,)
         return conficence_area
 
     def predictTimeSeriesWithTrainedModel (self, dataInDataFrameFormat, steps_ahead, frequency, date_column="index",
@@ -122,7 +123,7 @@ class ModelPrediction:
         if steps_ahead < self.model["time_window"]:
             # 2. Predict with stored data
             prediction = self.model["model"].predict(input_data)
-            prediction_dataFrame = pd.DataFrame(np.squeeze(prediction, axis=0)).set_axis([self.model["var_to_predict"]],axis=1).set_index(future_dataframe["Date"])
+            prediction_dataFrame = pd.DataFrame(np.squeeze(prediction, axis=0)).set_axis(self.model["var_to_predict"],axis=1).set_index(future_dataframe["Date"])
             # 2.0.1. Multiply for target divider, if required
             prediction_dataFrame = prediction_dataFrame * target_division
             # 2.1. De-standardize
@@ -132,7 +133,7 @@ class ModelPrediction:
         elif steps_ahead == self.model["time_window"]:
             # 2. Predict with stored data
             prediction = self.model["model"].predict(input_data)
-            prediction_dataFrame = pd.DataFrame(np.squeeze(prediction, axis=0)).set_axis([self.model["var_to_predict"]],axis=1).set_index(future_dataframe["Date"])
+            prediction_dataFrame = pd.DataFrame(np.squeeze(prediction, axis=0)).set_axis(self.model["var_to_predict"],axis=1).set_index(future_dataframe["Date"])
             # 2.0.1. Multiply for target divider, if required
             prediction_dataFrame = prediction_dataFrame * target_division
             # 2.1. De-standardize
@@ -145,7 +146,7 @@ class ModelPrediction:
             for chunk in range(full_chuncks):
                 prediction = self.model["model"].predict(input_data)
                 # 2.1. Transform to dataFrame
-                prediction_dataFrame_chunk = pd.DataFrame(np.squeeze(prediction, axis=0)).set_axis([self.model["var_to_predict"]], axis=1).set_index(future_dataframe["Date"])
+                prediction_dataFrame_chunk = pd.DataFrame(np.squeeze(prediction, axis=0)).set_axis(self.model["var_to_predict"], axis=1).set_index(future_dataframe["Date"])
                 # 2.1.1. De-standardize
                 if self.model["target_scaler"] is not None:
                     prediction_dataFrame_chunk[self.model["var_to_predict"]] = self.model["target_scaler"].inverse_transform(pd.DataFrame(prediction_dataFrame_chunk[self.model["var_to_predict"]]))

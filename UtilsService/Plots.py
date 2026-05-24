@@ -101,15 +101,20 @@ class Plots:
 
         if date_column != "index":
             dataInDataFrameFormat = dataInDataFrameFormat.set_index(date_column)
-        plt.figure(figsize=(15, 5))
-        if date_column != "index":
-            plt.plot(dataInDataFrameFormat.sort_values(by=date_column, ascending=True)[variable][(-672 if frequency == "15min" else -168):])
-        else:
-            plt.plot(dataInDataFrameFormat.sort_index(ascending=True)[variable][(-672 if frequency == "15min" else -168):])
-        plt.plot(prediction_dataset[variable], color="red", linestyle="dashed")
-        plt.fill_between(prediction_dataset_lower.index, prediction_dataset_lower[variable], prediction_dataset_upper[variable], color="red", alpha=0.1)
+
+        fig, axes = plt.subplots(len(prediction_dataset.columns), 1, figsize=(15, 8))
+        for i, var in enumerate(variable):
+            if date_column != "index":
+                axes[i].plot(dataInDataFrameFormat.sort_values(by=date_column, ascending=True)[var][(-672 if frequency == "15min" else -168):])
+            else:
+                axes[i].plot(dataInDataFrameFormat.sort_index(ascending=True)[var][(-672 if frequency == "15min" else -168):])
+            axes[i].plot(prediction_dataset[var], color="red", linestyle="dashed")
+            axes[i].fill_between(prediction_dataset_lower.index, prediction_dataset_lower[var], prediction_dataset_upper[var], color="red", alpha=0.1)
+            axes[i].set_title("Prediction: " + str(var))
+        # save, layout, other useful stuff to show the graph
         if savePath is not None:
             plt.savefig(savePath, dpi=500)
+        plt.tight_layout()
         plt.show()
 
     # Function to plot having a geopandas geometry element
