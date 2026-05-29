@@ -2,13 +2,10 @@
 Simple Multi-Layer Perceptron for simple regression problems
 """
 
-from Dataset import Dataset as dt
 from ModelArch import ModelArch as arch
 from ModelTraining import ModelTraining as train
 from ModelEvaluation import ModelEvaluation as eval
-from ModelPrediction import ModelPrediction as pred
 from ModelSaving import ModelSaving as ms
-from VectorModule import VectorModule as vector
 
 class MLPWrapper:
 
