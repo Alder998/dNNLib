@@ -1,26 +1,30 @@
 """
-Simple Multi-Layer Perceptron for simple regression problems
+Wrapper to handle multi-class classification
 """
 
+from Dataset import Dataset as dt
 from ModelArch import ModelArch as arch
 from ModelTraining import ModelTraining as train
 from ModelEvaluation import ModelEvaluation as eval
-from ModelSaving import ModelSaving as ms
 
-class MLPWrapper:
+class MultiClassClassificationWrapper ():
 
-    def __init__(self, modelStructure, feature_variables, target_variables):
+    def __init__(self, modelStructure, target_variables, feature_variables):
         self.modelStructure = modelStructure
-        self.feature_variables = feature_variables
         self.target_variables = target_variables
+        self.feature_variables = feature_variables
         pass
 
-    def train_model(self, data, test_size, epochs, split_method="random", standardize=False, batch_size=32,
-                    validation_split=0.2, target_division=1):
+    def train_multiClass_model (self, data, epochs, test_size, split_method="random", standardize=False, batch_size=32,
+                                validation_split=0.2):
 
-        # 0. Create Architecture
-        model = arch.ModelArch(modelStructure=self.modelStructure).createRegressionModelArchitecture(mode="sequential")
-        # 1. Train Model
+        # 0.0. Process the data
+        data, categories_map = dt.Dataset().processDatasetForClassification(dataInDataFrameFormat=data,
+                                                                            target_column=self.target_variables)
+        # 1. Model Architecture
+        model = arch.ModelArch(modelStructure=self.modelStructure).createMultiClassificationModelArchitecture(n_classes=categories_map,
+                                                                                                              mode="sequential")
+        # 2. Model Training
         trained_model = train.ModelTraining(model=model).trainModel(dataInDataFrameFormat=data,
                                                                     feature_variables=self.feature_variables,
                                                                     target_variables=self.target_variables,
@@ -32,13 +36,9 @@ class MLPWrapper:
                                                                     batch_size=batch_size,
                                                                     validation_split=validation_split,
                                                                     epochs=epochs,
-                                                                    target_division=target_division,
+                                                                    target_division=1,
                                                                     lag_series=[])
-        # 2. Evaluate
+        # 3. Evaluate
         evaluation = eval.ModelEvaluation(model=trained_model).evaluateModelPerformance(time_space=False)
 
         return model
-
-
-
-

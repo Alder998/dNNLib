@@ -43,3 +43,21 @@ class Dataset:
                     dataInDataFrameFormat[tc + "_" + str(lag_number) + "_lag"] = dataInDataFrameFormat[tc].shift(lag_number)
 
         return dataInDataFrameFormat.dropna().reset_index(drop=True)
+
+    # Process Dataset for Classification Task
+    def processDatasetForClassification (self, dataInDataFrameFormat, target_column):
+
+        print("DATASET - Processing Dataset for Multiclass Classification Tasks...")
+        # 0. The only stuff to do here is to make the target variable(s) categorical
+        # 0.1. For each one of the target columns, create the dict to map categorical variable into classes
+        categories_map = {}
+        for ccol in target_column:
+            categories_map[ccol] = {}
+            categories = dataInDataFrameFormat[ccol].unique()
+            for i, cat in enumerate(categories):
+                # 0.2. Create the categories mapping
+                categories_map[ccol][cat] = i
+                # 0.3. Now, transform the categories into numbers
+                dataInDataFrameFormat.loc[dataInDataFrameFormat[ccol] == cat, ccol] = i
+
+        return dataInDataFrameFormat, categories_map

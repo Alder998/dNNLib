@@ -367,16 +367,22 @@ class ModelArch:
         return modelInfo
 
     # Super-generalized function to have a Classification Model
-    def create2ClassificationModelArchitecture(self, dropout_FF=None, mode="sequential"):
+    def create2ClassificationModelArchitecture(self, mode="sequential"):
 
         # Logging
-        print("INFO - MODEL ARCHITECTURE: creating model Architecture for 2-class classification...")
+        print("INFO - MODEL ARCHITECTURE: creating model Architecture for 2-Class Classification...")
         modelInfo = {}
-        model = self.createModelArchitecture(dropout_FF=dropout_FF, mode=mode)
-        model.add(tf.keras.layers.Dense(1, activation='sigmoid'))
-        modelInfo["model"] = model
+        modelBuilder, inputs = self.createModelArchitecture(mode=mode)
+        if mode=="sequential":
+            modelBuilder.add(tf.keras.layers.Dense(units=1, activation='softmax'))
+        elif mode=="functional":
+            outputs = tf.keras.layers.Dense(units=1, activation='softmax')(modelBuilder)
+            modelBuilder = tf.keras.Model(inputs=inputs, outputs=outputs)
+        else:
+            raise Exception("Mode " + str(mode) + " not recognised!")
+        modelInfo["model"] = modelBuilder
 
-        # Add the typical loss used for 2-class problems (binary cross-loss entropy)
+        # Add the typical loss used for multi-class problems (sparse categorical loss entropy)
         loss = tf.keras.losses.BinaryCrossentropy()
         modelInfo["loss"] = loss
 
@@ -386,20 +392,31 @@ class ModelArch:
         return modelInfo
 
     # Super-generalized function to have a multi-Classification Model
-    def createMultiClassificationModelArchitecture(self, classes, dropout_FF=None):
+    def createMultiClassificationModelArchitecture(self, n_classes, mode="sequential"):
 
-        # Logging
-        print("INFO - MODEL ARCHITECTURE: creating model Architecture for multi-class classification...")
+        # 0. Extract the n-classes
+        n_classes_for_layer = (list(len(n_classes[col].values()) for col in n_classes))
+
+        # 0.1. Small Logging
+        print("INFO - MODEL ARCHITECTURE: creating model Architecture for Multi-Class classification...")
         modelInfo = {}
-        model = self.createModelArchitecture(dropout_FF=dropout_FF)
-        model.add(tf.keras.layers.Dense(units=classes, activation='softmax'))
-        modelInfo["model"] = model
+        modelBuilder, inputs = self.createModelArchitecture(mode=mode)
+        if mode=="sequential":
+            for class_layer in n_classes_for_layer:
+                modelBuilder.add(tf.keras.layers.Dense(units=class_layer, activation='softmax'))
+        elif mode=="functional":
+            for class_layer in n_classes_for_layer:
+                outputs = tf.keras.layers.Dense(units=class_layer, activation='softmax')(modelBuilder)
+                modelBuilder = tf.keras.Model(inputs=inputs, outputs=outputs)
+        else:
+            raise Exception("Mode " + str(mode) + " not recognised!")
+        modelInfo["model"] = modelBuilder
 
-        # Add the typical loss used for multi-class problems (sparse categorical loss entropy)
+        # 1. Add the typical loss used for multi-class problems (sparse categorical loss entropy)
         loss = tf.keras.losses.SparseCategoricalCrossentropy()
         modelInfo["loss"] = loss
 
-        # Add the structure (functional to vectorize the dataset)
+        # 2. Add the structure (functional to vectorize the dataset)
         modelInfo["modelStructure"] = self.modelStructure
 
         return modelInfo
