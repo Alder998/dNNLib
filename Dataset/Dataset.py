@@ -59,5 +59,7 @@ class Dataset:
                 categories_map[ccol][cat] = i
                 # 0.3. Now, transform the categories into numbers
                 dataInDataFrameFormat.loc[dataInDataFrameFormat[ccol] == cat, ccol] = i
+            # 0.4. Force integer (otherwise it will give error "unrecognized type: object")
+            dataInDataFrameFormat[ccol] = dataInDataFrameFormat[ccol].astype(int)
 
         return dataInDataFrameFormat, categories_map

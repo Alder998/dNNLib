@@ -414,10 +414,23 @@ class ModelArch:
 
         # 1. Add the typical loss used for multi-class problems (sparse categorical loss entropy)
         loss = tf.keras.losses.SparseCategoricalCrossentropy()
-        modelInfo["loss"] = loss
 
-        # 2. Add the structure (functional to vectorize the dataset)
+        # 2. Model Params
+        # Add the problem (regression | classification)
+        modelInfo["problem"] = "classification"
+        # Add the structure (functional to vectorize the dataset)
         modelInfo["modelStructure"] = self.modelStructure
+        # Add the loss to the modelInfo + the loss name for model reloading
+        modelInfo["loss"] = loss
+        modelInfo["loss_name"] = loss
+        # Add the input shape
+        modelInfo["input_shape"] = []
+        # Add the mode (sequential or functional)
+        modelInfo["mode"] = mode
+        # Add the peak-aware params
+        modelInfo["peak_aware_loss_params"] = {}
+        # Add the Adjacency Matrix as None
+        modelInfo["adjacency_matrix"] = None
 
         return modelInfo
 
