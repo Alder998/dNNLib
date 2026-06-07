@@ -13,6 +13,7 @@ class ModelEvaluation:
             test_loss, test_acc = self.model["model"].evaluate(self.model["test_set"], self.model["test_labels"], verbose=2)
 
         print("INFO -- test loss: ", '{:,}'.format(test_loss))
-        print("INFO -- test accuracy: ", '{:,}'.format(test_loss))
+        if "classification" in self.model["problem"]:
+            print("INFO -- test accuracy: ", '{:,}'.format(round(test_acc * 100, 2)) + " %")
 
         return test_loss, test_acc

@@ -17,9 +17,15 @@ class ModelTraining:
         modelTrainingInfo = {}
         print("INFO - MODEL TRAINING: Compilation and training...")
         # 1. Compile the model
-        self.model["model"].compile(optimizer='adam',
-                           loss=self.model["loss"],
-                           metrics=['mse'])
+        # 1.1. If the problem type is set as classification, use the accuracy as metrics
+        if "classification" in self.model["problem"]:
+            self.model["model"].compile(optimizer='adam',
+                               loss=self.model["loss"],
+                               metrics=["accuracy"])
+        else:
+            self.model["model"].compile(optimizer='adam',
+                               loss=self.model["loss"],
+                               metrics=["mse"])
 
         # 2. Train + add to the JSON for evaluation
         self.model["model"].fit(features_train, target_train, epochs=epochs, batch_size=batch_size, validation_split=validation_split)

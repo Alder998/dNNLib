@@ -367,7 +367,12 @@ class ModelArch:
         return modelInfo
 
     # Super-generalized function to have a Classification Model
-    def create2ClassificationModelArchitecture(self, mode="sequential"):
+    def create2ClassificationModelArchitecture(self, mapping_classes, mode="sequential"):
+
+        # 0. Check that the number of Categorical values into the model are two, otherwise suggest to use the multi-class model
+        n_classes_for_layer = (list(len(mapping_classes[col].values()) for col in mapping_classes))
+        if not (all(x == 2 for x in n_classes_for_layer)):
+            raise Exception("For Binary Classification every categorical variable must be 2! For MultiClass classification use the MultiClassClassification Module.")
 
         # Logging
         print("INFO - MODEL ARCHITECTURE: creating model Architecture for 2-Class Classification...")
@@ -382,12 +387,25 @@ class ModelArch:
             raise Exception("Mode " + str(mode) + " not recognised!")
         modelInfo["model"] = modelBuilder
 
-        # Add the typical loss used for multi-class problems (sparse categorical loss entropy)
+        # Add the typical loss used for 2-class problems (Binary cross entropy)
         loss = tf.keras.losses.BinaryCrossentropy()
-        modelInfo["loss"] = loss
 
+        # 2. Model Params
+        # Add the problem (regression | classification)
+        modelInfo["problem"] = "binary classification"
         # Add the structure (functional to vectorize the dataset)
         modelInfo["modelStructure"] = self.modelStructure
+        # Add the loss to the modelInfo + the loss name for model reloading
+        modelInfo["loss"] = loss
+        modelInfo["loss_name"] = loss
+        # Add the input shape
+        modelInfo["input_shape"] = []
+        # Add the mode (sequential or functional)
+        modelInfo["mode"] = mode
+        # Add the peak-aware params
+        modelInfo["peak_aware_loss_params"] = {}
+        # Add the Adjacency Matrix as None
+        modelInfo["adjacency_matrix"] = None
 
         return modelInfo
 
@@ -417,7 +435,7 @@ class ModelArch:
 
         # 2. Model Params
         # Add the problem (regression | classification)
-        modelInfo["problem"] = "classification"
+        modelInfo["problem"] = "multi-class classification"
         # Add the structure (functional to vectorize the dataset)
         modelInfo["modelStructure"] = self.modelStructure
         # Add the loss to the modelInfo + the loss name for model reloading
