@@ -406,6 +406,8 @@ class ModelArch:
         modelInfo["peak_aware_loss_params"] = {}
         # Add the Adjacency Matrix as None
         modelInfo["adjacency_matrix"] = None
+        # Being a classification problem, you have to add to modelInfo the categories mapping
+        modelInfo["categories_mapping"] = mapping_classes
 
         return modelInfo
 
@@ -449,6 +451,8 @@ class ModelArch:
         modelInfo["peak_aware_loss_params"] = {}
         # Add the Adjacency Matrix as None
         modelInfo["adjacency_matrix"] = None
+        # Being a classification problem, you have to add to modelInfo the categories mapping
+        modelInfo["categories_mapping"] = n_classes
 
         return modelInfo
 
