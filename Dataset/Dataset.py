@@ -9,7 +9,7 @@ class Dataset:
 
     # Process Dataset for Time Series Models
     def processDatasetForTimeSeries (self, dataInDataFrameFormat, date_column, target_column, lag_series,
-                                     date_column_format="%Y-%m-%d", frequency="1h"):
+                                     date_column_format="%Y-%m-%d", frequency="1h", classification=False):
 
         # 0.0. Check the compliance of the time-frequency
         if frequency not in ["1mo", "1d", "1h", "15min", "1min"]:
@@ -42,7 +42,13 @@ class Dataset:
                 for tc in target_column:
                     dataInDataFrameFormat[tc + "_" + str(lag_number) + "_lag"] = dataInDataFrameFormat[tc].shift(lag_number)
 
-        return dataInDataFrameFormat.dropna().reset_index(drop=True)
+        # 2. Make the target variable categorical (only for classification problems)
+        if classification:
+            dataInDataFrameFormat, categories_map= self.processDatasetForClassification(dataInDataFrameFormat=dataInDataFrameFormat, target_column=target_column)
+            return dataInDataFrameFormat.dropna().reset_index(drop=True), categories_map
+
+        else:
+            return dataInDataFrameFormat.dropna().reset_index(drop=True)
 
     # Process Dataset for Classification Task
     def processDatasetForClassification (self, dataInDataFrameFormat, target_column):

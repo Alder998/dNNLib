@@ -412,7 +412,9 @@ class ModelArch:
         return modelInfo
 
     # Super-generalized function to have a multi-Classification Model
-    def createMultiClassificationModelArchitecture(self, n_classes, mode="sequential"):
+    def createMultiClassificationModelArchitecture(self, n_classes, mode="sequential", adjacency_matrix=None, input_shape=(None, None, None, None),
+                                                   loss="MSE",
+                                                   peak_aware_loss_params={"alpha": 3.0, "beta":2.0, "gamma":1.0}):
 
         # 0. Extract the n-classes
         n_classes_for_layer = (list(len(n_classes[col].values()) for col in n_classes))
@@ -420,7 +422,7 @@ class ModelArch:
         # 0.1. Small Logging
         print("INFO - MODEL ARCHITECTURE: creating model Architecture for Multi-Class classification...")
         modelInfo = {}
-        modelBuilder, inputs = self.createModelArchitecture(mode=mode)
+        modelBuilder, inputs = self.createModelArchitecture(mode=mode, adjacency_matrix=adjacency_matrix, input_shape=input_shape)
         if mode=="sequential":
             for class_layer in n_classes_for_layer:
                 modelBuilder.add(tf.keras.layers.Dense(units=class_layer, activation='softmax'))

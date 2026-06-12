@@ -17,7 +17,7 @@ data = pd.read_excel(r"C:\Users\alder\Downloads\meteo_classification.xlsx").drop
 
 # 1. Launch Model
 mcc.MultiClassClassificationWrapper(modelStructure={"FF": {"layers": [300, 300, 300], "activation": "relu", "dropout": 0.0}},
-                                    target_variables=["Condizione Meteo"],
+                                    target_variables=["Rain_binary"],
                                     feature_variables=["Temperatura media (°C)", "Temperatura massima (°C)",
                                                        "Temperatura minima (°C)",
                                                        "Umidità media (%)", "Umidità massima (%)", "Umidità minima (%)",
