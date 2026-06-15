@@ -59,7 +59,8 @@ class Dataset:
         categories_map = {}
         for ccol in target_column:
             categories_map[ccol] = {}
-            categories = dataInDataFrameFormat[ccol].unique()
+            # 0.1.1. Order the categorical variables
+            categories = list(pd.Series(dataInDataFrameFormat[ccol].unique()).sort_values(ascending=False))
             for i, cat in enumerate(categories):
                 # 0.2. Create the categories mapping
                 categories_map[ccol][cat] = i
