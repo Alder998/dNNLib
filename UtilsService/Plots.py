@@ -103,6 +103,8 @@ class Plots:
             dataInDataFrameFormat = dataInDataFrameFormat.set_index(date_column)
 
         fig, axes = plt.subplots(len(prediction_dataset.columns), 1, figsize=(15, 8))
+        if len(variable) == 1:
+            axes = [axes]
         for i, var in enumerate(variable):
             if date_column != "index":
                 axes[i].plot(dataInDataFrameFormat.sort_values(by=date_column, ascending=True)[var][(-672 if frequency == "15min" else -168):])
