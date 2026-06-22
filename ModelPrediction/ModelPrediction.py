@@ -52,10 +52,6 @@ class ModelPrediction:
         # 2. Drop Duplicated columns to allow re-creation
         future_dataframe = future_dataframe.loc[:, ~future_dataframe.columns.duplicated()]
 
-        # 2.1. Standardize the features
-        if (self.model["feature_scaler"][0] if isinstance(self.model["feature_scaler"], list) else self.model["feature_scaler"]) is not None:
-            future_dataframe[self.model["params"]] = self.model["feature_scaler"].fit_transform(future_dataframe[self.model["params"]])
-
         # 4. Process dataFrame for lags
         if len(lag_series) != 0:
             for tc in self.model["var_to_predict"]:
@@ -63,6 +59,10 @@ class ModelPrediction:
                 df_for_lags = df_for_lags[-self.model["time_window"]:].reset_index(drop=True)
                 # 5. Add lags
                 future_dataframe = pd.concat([future_dataframe, df_for_lags], axis=1)
+
+        # 2.1. Standardize the features
+        if (self.model["feature_scaler"][0] if isinstance(self.model["feature_scaler"], list) else self.model["feature_scaler"]) is not None:
+            future_dataframe[self.model["params"]] = self.model["feature_scaler"].fit_transform(future_dataframe[self.model["params"]])
 
         # 3. Process the future dataframe with the batch size
         input_data = np.array(future_dataframe[self.model["params"]])
@@ -86,6 +86,10 @@ class ModelPrediction:
         # 0. predict
         prediction = self.model["model"].predict(input_data)
         prediction_dataFrame = pd.DataFrame(np.squeeze(prediction, axis=0)).set_axis(self.model["var_to_predict"],axis=1).set_index(future_dataframe["Date"])
+
+        # 0.1. Apply the inverse-transform if user chose standardization
+        if self.model["target_scaler"] is not None:
+            prediction_dataFrame[self.model["var_to_predict"]] = self.model["target_scaler"].inverse_transform(pd.DataFrame(prediction_dataFrame[self.model["var_to_predict"]]))
 
         # 1. Get the actual data from the dataset
         if date_column == "index":
