@@ -3,8 +3,7 @@
 import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
-from sklearn.neighbors import kneighbors_graph
-from sklearn.metrics.pairwise import euclidean_distances
+from sklearn.preprocessing import MinMaxScaler
 import pandas as pd
 
 class VectorModule:
@@ -14,11 +13,17 @@ class VectorModule:
         pass
 
     # Function to standardize data
-    def standardizeData (self, dataInDataFrameFormat, feature_variables, target_variables):
+    def standardizeData (self, dataInDataFrameFormat, feature_variables, target_variables, model="std"):
 
         # 0. Instantiate the scaler
-        feature_scaler = StandardScaler()
-        target_scaler = StandardScaler()
+        if model == "std":
+            feature_scaler = StandardScaler()
+            target_scaler = StandardScaler()
+        elif model == "min-max":
+            feature_scaler = MinMaxScaler()
+            target_scaler = MinMaxScaler()
+        else:
+            raise Exception("Standardizer " + str() + " not implemented.")
 
         # 1. Scale the feature variables
         dataInDataFrameFormat_scaled_features = dataInDataFrameFormat.copy()
@@ -33,7 +38,7 @@ class VectorModule:
 
     # Data Processing for feed forward (easiest one)
     def processDataForFF (self, dataInDataFrameFormat, feature_variables, target_variables, test_size, standardize = False, split_method="random",
-                          seasonal_splits=10, target_division=1, lag_series=[]):
+                          seasonal_splits=10, target_division=1, lag_series=[], standardizer="std"):
 
         # S. if lags are present, add them to the features
         if len(lag_series) != 0:
@@ -46,7 +51,8 @@ class VectorModule:
         if standardize:
             feature_scaler, target_scaler, dataInDataFrameFormat = self.standardizeData(dataInDataFrameFormat=dataInDataFrameFormat,
                                                                                              feature_variables=feature_variables,
-                                                                                             target_variables=target_variables)
+                                                                                             target_variables=target_variables,
+                                                                                             model=standardizer)
         else:
             feature_scaler = None
             target_scaler = None
@@ -95,7 +101,7 @@ class VectorModule:
 
     # Data Processing for recurrent NN
     def processDataForRecurrentNet (self, dataInDataFrameFormat, feature_variables, target_variables, test_size, time_window, standardize=False,
-                                    split_method="random", seasonal_splits=10, prediction=False, target_division=1, lag_series=[]):
+                                    split_method="random", seasonal_splits=10, prediction=False, target_division=1, lag_series=[], standardizer="std"):
 
         # S. if lags are present, add them to the features
         if len(lag_series) != 0:
@@ -109,7 +115,8 @@ class VectorModule:
         if standardize:
             feature_scaler, target_scaler, dataInDataFrameFormat = self.standardizeData(dataInDataFrameFormat=dataInDataFrameFormat,
                                                                                              feature_variables=feature_variables,
-                                                                                             target_variables=target_variables)
+                                                                                             target_variables=target_variables,
+                                                                                             model=standardizer)
         else:
             feature_scaler = None
             target_scaler = None
