@@ -24,7 +24,7 @@ class TimeSeriesWrapper:
                                             test_size=0.30, validation_split=0.2, standardize=False,
                                             split_method="time-series", seasonal_splits=12, batch_size=32, save_dir=None,
                                             model_save_name="model", plot=False, plot_save_dir=None, confidence_area=True,
-                                            target_division=1, date_column_format="%Y-%m-%d %H:%M:%S"):
+                                            target_division=1, date_column_format="%Y-%m-%d %H:%M:%S", scaler="std"):
 
         # 0.0. Process the data
         data = dt.Dataset().processDatasetForTimeSeries(dataInDataFrameFormat=data,
@@ -53,7 +53,8 @@ class TimeSeriesWrapper:
                                                                     validation_split=validation_split,
                                                                     epochs=epochs,
                                                                     target_division=target_division,
-                                                                    lag_series=self.lags)
+                                                                    lag_series=self.lags,
+                                                                    scaler=scaler)
 
         # 2. Evaluate the model
         evaluation = eval.ModelEvaluation(model=trained_model).evaluateModelPerformance()

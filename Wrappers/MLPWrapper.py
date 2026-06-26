@@ -16,7 +16,7 @@ class MLPWrapper:
         pass
 
     def train_model(self, data, test_size, epochs, split_method="random", standardize=False, batch_size=32,
-                    validation_split=0.2, target_division=1):
+                    validation_split=0.2, target_division=1, scaler="std"):
 
         # 0. Create Architecture
         model = arch.ModelArch(modelStructure=self.modelStructure).createRegressionModelArchitecture(mode="sequential")
@@ -33,7 +33,8 @@ class MLPWrapper:
                                                                     validation_split=validation_split,
                                                                     epochs=epochs,
                                                                     target_division=target_division,
-                                                                    lag_series=[])
+                                                                    lag_series=[],
+                                                                    scaler=scaler)
         # 2. Evaluate
         evaluation = eval.ModelEvaluation(model=trained_model).evaluateModelPerformance(time_space=False)
 

@@ -16,7 +16,7 @@ class BinaryClassificationWrapper ():
         pass
 
     def train_multiClass_model (self, data, epochs, test_size, split_method="random", standardize=False, batch_size=32,
-                                validation_split=0.2):
+                                validation_split=0.2, scaler="std"):
 
         # 0.0. Process the data
         data, categories_map = dt.Dataset().processDatasetForClassification(dataInDataFrameFormat=data,
@@ -37,7 +37,8 @@ class BinaryClassificationWrapper ():
                                                                     validation_split=validation_split,
                                                                     epochs=epochs,
                                                                     target_division=1,
-                                                                    lag_series=[])
+                                                                    lag_series=[],
+                                                                    scaler=scaler)
         # 3. Evaluate
         evaluation = eval.ModelEvaluation(model=trained_model).evaluateModelPerformance(time_space=False)
 
