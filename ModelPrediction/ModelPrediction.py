@@ -277,7 +277,7 @@ class ModelPrediction:
             for ch in range(prediction_chunks-1):
                 marginal_steps_ahead = np.abs((self.model["time_window"] * (ch+1)) - steps_ahead)
                 features_array, target_array, feature_scaler, target_scaler, unique_spaceVar, timeSpaceDataFrame = self.prepareDataForGeoSpacePrediction(
-                                                                                                                    dataInDataFrameFormat=model_prediction_df.rename(columns={"date":"Date"}),
+                                                                                                                    dataInDataFrameFormat=model_prediction_df,
                                                                                                                     date_column=date_column,
                                                                                                                     frequency=frequency,
                                                                                                                     lag_series=lag_series,
