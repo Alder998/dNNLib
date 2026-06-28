@@ -82,7 +82,8 @@ class ModelPrediction:
                                                                   date_column=date_column,
                                                                   frequency=frequency,
                                                                   lag_series=lag_series,
-                                                                  scope="confidence")
+                                                                  scope="confidence",
+                                                                  scaler=self.model["feature_scaler"])
         # 0. predict
         prediction = self.model["model"].predict(input_data)
         prediction_dataFrame = pd.DataFrame(np.squeeze(prediction, axis=0)).set_axis(self.model["var_to_predict"],axis=1).set_index(future_dataframe["Date"])
@@ -112,7 +113,8 @@ class ModelPrediction:
         future_dataframe, input_data = self.createFutureDataFrame(dataInDataFrameFormat=dataInDataFrameFormat,
                                                                   date_column=date_column,
                                                                   frequency=frequency,
-                                                                  lag_series=lag_series)
+                                                                  lag_series=lag_series,
+                                                                  scaler=self.model["feature_scaler"])
         # 0.1. Create Confidence bars
         if confidence_area:
             conficence_area = self.generateConfidenceBars(dataInDataFrameFormat=dataInDataFrameFormat,
@@ -155,7 +157,7 @@ class ModelPrediction:
                 if self.model["target_scaler"] is not None:
                     prediction_dataFrame_chunk[self.model["var_to_predict"]] = self.model["target_scaler"].inverse_transform(pd.DataFrame(prediction_dataFrame_chunk[self.model["var_to_predict"]]))
                 # 2.2. Update Input data
-                future_dataframe, input_data = self.createFutureDataFrame(dataInDataFrameFormat=future_dataframe, date_column="Date", frequency=frequency)
+                future_dataframe, input_data = self.createFutureDataFrame(dataInDataFrameFormat=future_dataframe, date_column="Date", frequency=frequency, scaler=self.model["feature_scaler"])
                 # 2.3. Append to the full prediction DataFrame
                 full_predictions.append(prediction_dataFrame_chunk)
             prediction_dataFrame = pd.concat([df for df in full_predictions], axis=0)

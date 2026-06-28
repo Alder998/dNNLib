@@ -154,6 +154,8 @@ class VectorModule:
             target_test = target_array[train_index:]
         # 2.2. Implement seasonal split to account for different levels, but to maintain the temporal order
         elif split_method == "seasonal-time-series":
+            # 2.2.1. Define the problem, if time-space, the dimensions are +1 wrt time series
+            # 2.2.2. Process
             train_index = int(features_array.shape[0] * (1-test_size))
             train_list = list(int(i) for i in np.linspace(0, features_array.shape[0], seasonal_splits))
             tfl = []
@@ -169,11 +171,7 @@ class VectorModule:
             features_train = features_train.reshape(features_train.shape[0] * features_train.shape[1], features_train.shape[2], features_train.shape[3])
             target_train = np.stack(ttl, axis=0)
             # Add the third dimension, that is necessary only if the existing dimensions are 2
-            if len(target_train.shape) == 3:
-                target_train = target_train.reshape(target_train.shape[0] * target_train.shape[1], target_train.shape[2])
-                target_train = target_train[:, :, None]
-            else:
-                target_train = target_train.reshape(target_train.shape[0] * target_train.shape[1], target_train.shape[2], target_train.shape[3])
+            target_train = target_train.reshape(target_train.shape[0] * target_train.shape[1], target_train.shape[2], target_train.shape[3])
             indexes = [x for sub in indexes for x in sub]
             features_test = np.delete(features_array, indexes, axis=0)
             target_test = np.delete(target_array, indexes, axis=0)
@@ -210,6 +208,9 @@ class VectorModule:
             features_test = np.stack(features_test, axis = 3)
             target_train = np.stack(target_train, axis = 2)
             target_test = np.stack(target_test, axis = 2)
+            # It may happen that the target_test lacks the last dimension. In case, add it
+            if len(target_test.shape) < len(target_train.shape):
+                target_test = np.expand_dims(target_test, axis=len(target_train.shape)-1)
             #if feature_scaler[0] is not None:
             #    feature_scaler = np.stack(feature_scaler, axis = 3)
             #   target_scaler = np.stack(target_scaler, axis = 3)
