@@ -11,7 +11,7 @@ class ModelPrediction:
         pass
 
     # Function to create the steps-ahead dataFrame
-    def createFutureDataFrame(self, dataInDataFrameFormat, date_column, frequency, lag_series=[], scope="prediction"):
+    def createFutureDataFrame(self, dataInDataFrameFormat, date_column, frequency, lag_series=[], scope="prediction", scaler=None):
 
         if date_column == "index":
             date_idx = dataInDataFrameFormat.index
@@ -60,9 +60,9 @@ class ModelPrediction:
                 # 5. Add lags
                 future_dataframe = pd.concat([future_dataframe, df_for_lags], axis=1)
 
-        # 2.1. Standardize the features
+        # 2.1. Standardize the features to align them with the model prediction
         if (self.model["feature_scaler"][0] if isinstance(self.model["feature_scaler"], list) else self.model["feature_scaler"]) is not None:
-            future_dataframe[self.model["params"]] = self.model["feature_scaler"].fit_transform(future_dataframe[self.model["params"]])
+            future_dataframe[self.model["params"]] = scaler.fit_transform(future_dataframe[self.model["params"]])
 
         # 3. Process the future dataframe with the batch size
         input_data = np.array(future_dataframe[self.model["params"]])
@@ -180,9 +180,9 @@ class ModelPrediction:
         unique_spaceVar = self.model["space_variables"].astype(str).agg('_'.join, axis=1) if len(self.model["space_variables"].columns) > 1 else self.model["space_variables"]
         timeSpaceDataFrame = []
         print("PREDICTION - Creating Geospatial Prediction Dataset...")
-        for coord in unique_spaceVar.unique():
+        for i, coord in enumerate(unique_spaceVar.unique()):
             future_dataframe, input_data = self.createFutureDataFrame(dataInDataFrameFormat=dataInDataFrameFormat, date_column=date_column,
-                                                 frequency=frequency, lag_series=lag_series, scope=scope)
+                                                 frequency=frequency, lag_series=lag_series, scope=scope, scaler=self.model["feature_scaler"][i])
             future_dataframe["space_unique"] = coord
             timeSpaceDataFrame.append(future_dataframe)
         timeSpaceDataFrame = pd.concat([df for df in timeSpaceDataFrame], axis=0).reset_index(drop=True)
@@ -215,6 +215,12 @@ class ModelPrediction:
         model_prediction = self.model["model"].predict(features_array.transpose(0, 1, 3, 2))
         # Create a DataFrame + populate Axis with time and space variables
         model_prediction_df = pd.DataFrame(np.squeeze(np.squeeze(model_prediction, axis=3), axis=0)).T
+
+        # De-Standardize with the loaded scaler from Model Training
+        if (self.model["target_scaler"][0] if isinstance(self.model["target_scaler"], list) else self.model["target_scaler"]) is not None:
+            for k, coord_scaler in enumerate(self.model["target_scaler"]):
+                model_prediction_df.iloc[k, :] = pd.DataFrame(coord_scaler.inverse_transform(pd.DataFrame(model_prediction_df.iloc[k, :])))[0]
+
         model_prediction_df = model_prediction_df.set_index(pd.Series(unique_spaceVar.unique()))
         model_prediction_df = model_prediction_df.set_axis(pd.Series(timeSpaceDataFrame["Date"].unique()), axis=1)
         # Truncates in case of LESS time steps for prediction than time window

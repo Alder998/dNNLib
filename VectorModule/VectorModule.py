@@ -210,9 +210,9 @@ class VectorModule:
             features_test = np.stack(features_test, axis = 3)
             target_train = np.stack(target_train, axis = 2)
             target_test = np.stack(target_test, axis = 2)
-            if feature_scaler[0] is not None:
-                feature_scaler = np.stack(feature_scaler, axis = 3)
-                target_scaler = np.stack(target_scaler, axis = 3)
+            #if feature_scaler[0] is not None:
+            #    feature_scaler = np.stack(feature_scaler, axis = 3)
+            #   target_scaler = np.stack(target_scaler, axis = 3)
 
             return features_train, features_test, target_train, target_test, feature_scaler, target_scaler
 
@@ -293,6 +293,6 @@ class VectorModule:
 
         # Ad-hoc config for time-space
         if timeSpace:
-            features_train, features_test, target_train, target_test, feature_scaler, target_scaler = self.processDataForGeospatialModel(dataInDataFrameFormat, feature_variables, target_variables, test_size, time_window, space_variables, standardize, split_method, seasonal_splits, prediction=prediction, target_division=target_division, lag_series=lag_series)
+            features_train, features_test, target_train, target_test, feature_scaler, target_scaler = self.processDataForGeospatialModel(dataInDataFrameFormat, feature_variables, target_variables, test_size, time_window, space_variables, standardize, split_method, seasonal_splits, prediction=prediction, target_division=target_division, lag_series=lag_series, scaler=scaler)
 
         return features_train, features_test, target_train, target_test, feature_scaler, target_scaler
