@@ -22,11 +22,11 @@ ts.TimeSeriesWrapper(modelStructure={"MultiSeasonConv1DGated": {"layers": [16], 
                                                           date_column_format="%Y-%m-%dT%H:%M",
                                                           loss="MSE",  # "MSE" | "peak-aware-MSE"
                                                           split_method="seasonal-time-series",  # "time-series" | "seasonal-time-series" | "random"
-                                                          seasonal_splits=300,
-                                                          epochs=3,
+                                                          seasonal_splits=300, # splitting chunks on time-series
+                                                          standardize=True, # Scale the data
+                                                          scaler="std",  # if standardize = True, type of scaler: "std" | "min-max"
+                                                          epochs=50,
                                                           prediction_steps_ahead=48,
-                                                          target_division=1,
-                                                          scaler="std",  # "std" | "min-max"
-                                                          standardize=True,
-                                                          plot=True,
+                                                          target_division=1, # whether to divide the target variable
+                                                          plot=True, # whether to plot the prediction ahead
                                                           plot_save_dir=r"C:\Users\alder\Downloads\temp_prediction_1h.png")

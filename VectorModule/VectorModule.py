@@ -168,9 +168,11 @@ class VectorModule:
                 ttl.append(tt)
                 indexes.append(list(range(t, min(t+int(train_index/seasonal_splits), features_array.shape[0]-1))))
             features_train = np.stack(tfl, axis=0)
-            features_train = features_train.reshape(features_train.shape[0] * features_train.shape[1], features_train.shape[2], features_train.shape[3])
             target_train = np.stack(ttl, axis=0)
-            # Add the third dimension, that is necessary only if the existing dimensions are 2
+            # Align dimensions if not aligned between the feature and the target sets (they must have 4 dimensions)
+            if len(target_train.shape) < len(features_train.shape):
+                target_train = np.expand_dims(target_train, axis=3)
+            features_train = features_train.reshape(features_train.shape[0] * features_train.shape[1], features_train.shape[2], features_train.shape[3])
             target_train = target_train.reshape(target_train.shape[0] * target_train.shape[1], target_train.shape[2], target_train.shape[3])
             indexes = [x for sub in indexes for x in sub]
             features_test = np.delete(features_array, indexes, axis=0)
