@@ -32,12 +32,35 @@ class ModelSaving:
             model_info["loss_name"] = self.model["loss_name"]
             model_info["peak_aware_loss_params"] = self.model["peak_aware_loss_params"]
             model_info["mode"] = self.model["mode"]
-            model_info["adjacency_matrix"] = self.model["adjacency_matrix"].tolist()
+            if "adjacency_matrix" in model_info.keys():
+                model_info["adjacency_matrix"] = self.model["adjacency_matrix"].tolist()
             model_info["time_window"] = self.model["time_window"]
             model_info["params"] = self.model["params"]
             model_info["var_to_predict"] = self.model["var_to_predict"]
-            model_info["feature_scaler"] = self.model["feature_scaler"]
-            model_info["target_scaler"] = self.model["target_scaler"]
+            # The scaler needs ad-hoc saving method
+            if not isinstance(self.model["feature_scaler"], list):
+                self.model["feature_scaler"] = [self.model["feature_scaler"]]
+                self.model["target_scaler"] = [self.model["target_scaler"]]
+            scaler_features_param = {}
+            scaler_target_param = {}
+            for item in range(len(self.model["feature_scaler"])):
+                scaler_features_param[item] = {
+                    "mean": self.model["feature_scaler"][item].mean_.tolist(),
+                    "scale": self.model["feature_scaler"][item].scale_.tolist(),
+                    "var": self.model["feature_scaler"][item].var_.tolist(),
+                    "n_features_in": self.model["feature_scaler"][item].n_features_in_,
+                    "with_mean": self.model["feature_scaler"][item].with_mean,
+                    "with_scale": self.model["feature_scaler"][item].with_std}
+                scaler_target_param[item] = {
+                    "mean": self.model["target_scaler"][item].mean_.tolist(),
+                    "scale": self.model["target_scaler"][item].scale_.tolist(),
+                    "var": self.model["target_scaler"][item].var_.tolist(),
+                    "n_features_in": self.model["target_scaler"][item].n_features_in_,
+                    "with_mean": self.model["target_scaler"][item].with_mean,
+                    "with_scale": self.model["target_scaler"][item].with_std}
+
+            model_info["feature_scaler"] = scaler_features_param
+            model_info["target_scaler"] = scaler_target_param
             # Space variables must be added only for geo-space Model
             if "space_variables" in self.model.keys():
                 self.model["space_variables"].to_csv(custom_directory + "\\space_dataset.csv")
