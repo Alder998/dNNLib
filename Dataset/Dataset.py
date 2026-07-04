@@ -24,6 +24,11 @@ class Dataset:
             dataInDataFrameFormat["quarter"] = dataInDataFrameFormat[date_column].dt.quarter
         if "month" not in dataInDataFrameFormat.columns:
             dataInDataFrameFormat["month"] = dataInDataFrameFormat[date_column].dt.month
+        if "season" not in dataInDataFrameFormat.columns:
+            dataInDataFrameFormat.loc[dataInDataFrameFormat["month"].isin([1, 2, 3]), "season"] = 1
+            dataInDataFrameFormat.loc[dataInDataFrameFormat["month"].isin([4, 5, 6]), "season"] = 2
+            dataInDataFrameFormat.loc[dataInDataFrameFormat["month"].isin([7, 8, 9]), "season"] = 3
+            dataInDataFrameFormat.loc[dataInDataFrameFormat["month"].isin([10, 11, 12]), "season"] = 4
         if "day" not in dataInDataFrameFormat.columns:
             dataInDataFrameFormat["day"] = dataInDataFrameFormat[date_column].dt.day
         if "day_of_week" not in dataInDataFrameFormat.columns:

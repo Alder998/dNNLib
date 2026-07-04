@@ -38,8 +38,15 @@ class ModelPrediction:
         # 1. Create the columns params
         if "year" in self.model["params"]:
             future_dataframe["year"] = future_dataframe["Date"].dt.year
+        if "quarter" in self.model["params"]:
+            future_dataframe["quarter"] = future_dataframe["Date"].dt.quarter
         if "month" in self.model["params"]:
             future_dataframe["month"] = future_dataframe["Date"].dt.month
+        if "season" in self.model["params"]:
+            future_dataframe.loc[future_dataframe["month"].isin([1, 2, 3]), "season"] = 1
+            future_dataframe.loc[future_dataframe["month"].isin([4, 5, 6]), "season"] = 2
+            future_dataframe.loc[future_dataframe["month"].isin([7, 8, 9]), "season"] = 3
+            future_dataframe.loc[future_dataframe["month"].isin([10, 11, 12]), "season"] = 4
         if "day" in self.model["params"]:
             future_dataframe["day"] = future_dataframe["Date"].dt.day
         if "day_of_week" in self.model["params"]:
