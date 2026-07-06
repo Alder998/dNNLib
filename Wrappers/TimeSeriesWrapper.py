@@ -21,7 +21,7 @@ class TimeSeriesWrapper:
 
     def trainPredictAndSaveTimeSeriesModel (self, data, prediction_steps_ahead, epochs, loss="MSE",
                                             peak_aware_loss_params={"alpha": 3.0, "beta": 2.0,"gamma": 1.0, "delta": 2.0, "peak_threshold": 0.8},
-                                            test_size=0.30, validation_split=0.2, standardize=False,
+                                            test_size=0.30, validation_split=0.2, shuffle=True, standardize=False,
                                             split_method="time-series", seasonal_splits=12, batch_size=32, save_dir=None,
                                             model_save_name="model", plot=False, plot_save_dir=None, confidence_area=True,
                                             target_division=1, date_column_format="%Y-%m-%d %H:%M:%S", scaler="std"):
@@ -54,7 +54,8 @@ class TimeSeriesWrapper:
                                                                     epochs=epochs,
                                                                     target_division=target_division,
                                                                     lag_series=self.lags,
-                                                                    scaler=scaler)
+                                                                    scaler=scaler,
+                                                                    shuffle=shuffle)
 
         # 2. Evaluate the model
         evaluation = eval.ModelEvaluation(model=trained_model).evaluateModelPerformance()

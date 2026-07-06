@@ -8,7 +8,7 @@ class ModelTraining:
         self.model = model
 
     def trainModel (self, dataInDataFrameFormat, feature_variables, target_variables, test_size, validation_split,
-                    standardize, batch_size, epochs, time_window, split_method="random", seasonal_splits=10, target_division=1,
+                    standardize, batch_size, epochs, time_window, shuffle=True, split_method="random", seasonal_splits=10, target_division=1,
                     lag_series=[], scaler="std"):
 
         # 0. Make pandas dataFrame array, to be used for training
@@ -29,7 +29,7 @@ class ModelTraining:
                                metrics=["mse"])
 
         # 2. Train + add to the JSON for evaluation
-        self.model["model"].fit(features_train, target_train, epochs=epochs, batch_size=batch_size, validation_split=validation_split)
+        self.model["model"].fit(features_train, target_train, epochs=epochs, batch_size=batch_size, validation_split=validation_split, shuffle=shuffle)
         modelTrainingInfo["model"] = self.model["model"]
 
         # 3. Add all the prediction needed features to the model
@@ -52,7 +52,7 @@ class ModelTraining:
         return modelTrainingInfo
 
     def trainGeospatialModel (self, dataInDataFrameFormat, feature_variables, target_variables, test_size, validation_split,
-                              standardize, batch_size, epochs, time_window, space_variables, split_method="random", seasonal_splits=10, target_division=1, lag_series=[], scaler="std"):
+                              standardize, batch_size, epochs, time_window, space_variables, shuffle=True, split_method="random", seasonal_splits=10, target_division=1, lag_series=[], scaler="std"):
 
         # 0. Make pandas dataFrame array, to be used for training
         print("INFO - MODEL TRAINING: Vectorizing the data from a DataFrame format...")
@@ -65,7 +65,11 @@ class ModelTraining:
                            metrics=['mse'])
 
         # 2. Train + add to the JSON for evaluation
-        self.model["model"].fit(features_train.transpose(0, 1, 3, 2), target_train, epochs=epochs, batch_size=batch_size, validation_split=validation_split)
+        self.model["model"].fit(features_train.transpose(0, 1, 3, 2), target_train,
+                                epochs=epochs,
+                                batch_size=batch_size,
+                                validation_split=validation_split,
+                                shuffle=shuffle)
         modelTrainingInfo["model"] = self.model["model"]
 
         # 3. Add all the prediction needed features to the model
