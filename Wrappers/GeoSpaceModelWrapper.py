@@ -22,18 +22,19 @@ class GeoSpaceModelWrapper:
         self.lags = lags
         pass
 
-    def trainPredictAndSaveGeospaceModel (self, data, prediction_steps_ahead, epochs, test_size=0.30, validation_split=0.2,
+    def trainPredictAndSaveGeospaceModel (self, data, prediction_steps_ahead, epochs, shuffle=True, test_size=0.30, validation_split=0.2,
                                           sigma_adjacency=None, standardize=False, split_method="time-series",
                                           seasonal_splits=12, batch_size=32, save_dir=None, model_save_name="model", plot=False,
                                           plot_save_dir=None, target_division=1, date_column_format="%Y-%m-%d %H:%M:%S", scaler="std"):
 
         # 0.0. Process the data
-        data = dt.Dataset().processDatasetForTimeSeries(dataInDataFrameFormat=data,
-                                                        date_column=self.date_column,
-                                                        target_column=self.target_variables,
-                                                        date_column_format=date_column_format,
-                                                        frequency=self.frequency,
-                                                        lag_series=self.lags)
+        data = dt.Dataset().processDatasetForGeoSpaceTimeSeries(dataInDataFrameFormat=data,
+                                                                date_column=self.date_column,
+                                                                target_column=self.target_variables,
+                                                                date_column_format=date_column_format,
+                                                                frequency=self.frequency,
+                                                                lag_series=self.lags,
+                                                                space_variables=self.space_variables)
 
         # 0. Create Adjacency Matrix
         adjacency_matrix = vector.VectorModule(modelStructure=self.modelStructure).createAdjacencyMatrixFromDataFrame(dataInDataFrameFormat=data,
@@ -63,7 +64,8 @@ class GeoSpaceModelWrapper:
                                                                               epochs=epochs,
                                                                               target_division=target_division,
                                                                               lag_series=self.lags,
-                                                                              scaler=scaler)
+                                                                              scaler=scaler,
+                                                                              shuffle=shuffle)
         # 2. Evaluate Model
         evaluation = eval.ModelEvaluation(model=trained_model).evaluateModelPerformance(time_space=True)
 
