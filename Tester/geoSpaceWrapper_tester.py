@@ -1,21 +1,21 @@
 from Wrappers import GeoSpaceModelWrapper as geo
 import pandas as pd
 
-data = pd.read_csv(r"C:\Users\alder\Downloads\weather_liguria1.csv")
+data = pd.read_csv(r"C:\Users\alder\Downloads\weather_liguria4.csv")
 
 geo.GeoSpaceModelWrapper(modelStructure={"GraphGRU": {"layers": [64], "activation": "tanh"}},
                          space_variables=["latitude","longitude"],
-                         feature_variables=["month","day","hour"],
+                         feature_variables=["year","season","month","day","hour"],
                          time_window=48,
-                         target_variables="temperature",
+                         target_variables=["temperature"],
                          date_column="date",
                          frequency="1h",
-                         lags=[]).trainPredictAndSaveGeospaceModel(data=data,
-                                                                   epochs=3,
+                         lags=[12, 24, 96]).trainPredictAndSaveGeospaceModel(data=data,
+                                                                   epochs=50,
                                                                    standardize=True,
-                                                                   scaler="min-max",
+                                                                   scaler="std",
                                                                    date_column_format="%Y-%m-%dT%H:%M",
-                                                                   split_method="seasonal-time-series",
+                                                                   split_method="time-series",
                                                                    seasonal_splits=3,
                                                                    prediction_steps_ahead=48,
                                                                    plot=True,
