@@ -249,12 +249,12 @@ class VectorModule:
         dataInDataFrameFormat[space_col] = dataInDataFrameFormat[space_variables].astype(str).agg("_".join, axis=1) if len(space_variables) > 1 else dataInDataFrameFormat[space_variables[0]]
 
         # 1. Group data by mean
-        data_grouped = dataInDataFrameFormat[[space_col, target_variables]].groupby(space_col, as_index=False).mean()
-        data_grouped = data_grouped[target_variables].values.astype(float)
-        diff_matrix = data_grouped[None, :] - data_grouped[:, None]
-        dist2 = diff_matrix ** 2
+        data_grouped = dataInDataFrameFormat[[space_col] + target_variables].groupby(space_col, as_index=False).mean()
+        X = data_grouped[target_variables].to_numpy(dtype=float)
+        diff = X[:, None, :] - X[None, :, :]  # (N,N,T)
+        dist2 = np.sum(diff ** 2, axis=-1)  # (N,N)
         if sigma is None:
-            sigma = np.std(data_grouped)
+            sigma = np.std(X)
         A = np.exp(-dist2 / (sigma ** 2))
 
         # Fill diagonal with 0
