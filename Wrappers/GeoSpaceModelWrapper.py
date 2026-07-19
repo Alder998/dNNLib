@@ -44,10 +44,11 @@ class GeoSpaceModelWrapper:
 
         # 1. Create Model
         model = arch.ModelArch(modelStructure=self.modelStructure).createRegressionModelArchitecture(mode="functional",
-                                                                                                    adjacency_matrix=adjacency_matrix,
-                                                                                                    input_shape=(self.time_window,
+                                                                                                     adjacency_matrix=adjacency_matrix,
+                                                                                                     input_shape=(self.time_window,
                                                                                                                  adjacency_matrix.shape[0],
-                                                                                                                 len(self.feature_variables) + len(self.lags)))
+                                                                                                                 len(self.feature_variables) + len(self.lags)*len(self.target_variables)),
+                                                                                                     target_variables=len(self.target_variables))
 
         # 2. Train Model
         trained_model = train.ModelTraining(model=model).trainGeospatialModel(dataInDataFrameFormat=data,

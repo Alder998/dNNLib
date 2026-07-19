@@ -222,40 +222,46 @@ class ModelPrediction:
     def predictGeoSpaceDataFrame (self, features_array, unique_spaceVar, timeSpaceDataFrame, target_division, steps_ahead):
         # Use stored model for prediction
         model_prediction = self.model["model"].predict(features_array.transpose(0, 1, 3, 2))
-        # Create a DataFrame + populate Axis with time and space variables
-        model_prediction_df = pd.DataFrame(np.squeeze(np.squeeze(model_prediction, axis=3), axis=0)).T
+        # Adapt the model to handle multiple prediction for multiple variables
+        prediction_dfs = []
+        for variable_pred in range(model_prediction.shape[3]):
 
-        # De-Standardize with the loaded scaler from Model Training
-        if (self.model["target_scaler"][0] if isinstance(self.model["target_scaler"], list) else self.model["target_scaler"]) is not None:
-            for k, coord_scaler in enumerate(self.model["target_scaler"]):
-                model_prediction_df.iloc[k, :] = pd.DataFrame(coord_scaler.inverse_transform(pd.DataFrame(model_prediction_df.iloc[k, :])))[0]
+            # Create a DataFrame + populate Axis with time and space variables
+            model_prediction_df = pd.DataFrame(np.squeeze(model_prediction[:, :, :, variable_pred], axis=0)).T
 
-        model_prediction_df = model_prediction_df.set_index(pd.Series(unique_spaceVar.unique()))
-        model_prediction_df = model_prediction_df.set_axis(pd.Series(timeSpaceDataFrame["Date"].unique()), axis=1)
-        # Truncates in case of LESS time steps for prediction than time window
-        if steps_ahead < self.model["time_window"]:
-            model_prediction_df = model_prediction_df[model_prediction_df.columns[:steps_ahead]]
+            # De-Standardize with the loaded scaler from Model Training
+            if (self.model["target_scaler"][0] if isinstance(self.model["target_scaler"], list) else self.model["target_scaler"]) is not None:
+                for k, coord_scaler in enumerate(self.model["target_scaler"]):
+                    model_prediction_df.iloc[k, :] = pd.DataFrame(coord_scaler.inverse_transform(pd.DataFrame(model_prediction_df.iloc[k, :])))[0]
 
-        # Create Latitude + Longitude columns + "pile" the coordinates on axis=0
-        dataPiled = []
-        for singleValue in model_prediction_df.index:
-            dfc = model_prediction_df[model_prediction_df.index == singleValue].T
-            dfc["singleCoord"] = singleValue
-            dfc = dfc.reset_index()
-            dfc = dfc.rename(columns={singleValue: self.model["var_to_predict"]}).rename(columns={"index": "date"})
-            dataPiled.append(dfc)
-        dataPiled = pd.concat([df for df in dataPiled], axis=0).reset_index(drop=True)
+            model_prediction_df = model_prediction_df.set_index(pd.Series(unique_spaceVar.unique()))
+            model_prediction_df = model_prediction_df.set_axis(pd.Series(timeSpaceDataFrame["Date"].unique()), axis=1)
+            # Truncates in case of LESS time steps for prediction than time window
+            if steps_ahead < self.model["time_window"]:
+                model_prediction_df = model_prediction_df[model_prediction_df.columns[:steps_ahead]]
 
-        dataPiled["latitude"] = dataPiled["singleCoord"].str.split("_").str[0].astype(float)
-        dataPiled["longitude"] = dataPiled["singleCoord"].str.split("_").str[1].astype(float)
-        dataPiled = dataPiled.drop(columns=["singleCoord"])
-        dataPiled = dataPiled.reset_index(drop=True)
-        # Re-order
-        dataPiled = dataPiled[["date", "latitude", "longitude", self.model["var_to_predict"]]]
-        # Multiply for target division param to preserve the variable scale
-        dataPiled[self.model["var_to_predict"]] = dataPiled[self.model["var_to_predict"]] * target_division
+            # Create Latitude + Longitude columns + "pile" the coordinates on axis=0
+            dataPiled = []
+            for singleValue in model_prediction_df.index:
+                dfc = model_prediction_df[model_prediction_df.index == singleValue].T
+                dfc["singleCoord"] = singleValue
+                dfc = dfc.reset_index()
+                dfc = dfc.rename(columns={singleValue: self.model["var_to_predict"]}).rename(columns={"index": "date"})
+                dataPiled.append(dfc)
+            dataPiled = pd.concat([df for df in dataPiled], axis=0).reset_index(drop=True)
 
-        return dataPiled
+            dataPiled["latitude"] = dataPiled["singleCoord"].str.split("_").str[0].astype(float)
+            dataPiled["longitude"] = dataPiled["singleCoord"].str.split("_").str[1].astype(float)
+            dataPiled = dataPiled.drop(columns=["singleCoord"])
+            dataPiled = dataPiled.reset_index(drop=True)
+            # Re-order
+            dataPiled = dataPiled[["date", "latitude", "longitude", self.model["var_to_predict"]]]
+            # Multiply for target division param to preserve the variable scale
+            dataPiled[self.model["var_to_predict"]] = dataPiled[self.model["var_to_predict"]] * target_division
+            # Append
+            prediction_dfs.append(dataPiled)
+
+        return prediction_dfs
 
     # Function to predict with geospatial model
     def predictGeoSpatialWithTrainedModel (self, dataInDataFrameFormat, steps_ahead, frequency, date_column="index", target_division=1, lag_series=[]):
