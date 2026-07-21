@@ -224,15 +224,15 @@ class ModelPrediction:
         model_prediction = self.model["model"].predict(features_array.transpose(0, 1, 3, 2))
         # Adapt the model to handle multiple prediction for multiple variables
         prediction_dfs = []
-        for variable_pred in range(model_prediction.shape[3]):
+        for i, variable_pred in enumerate(self.model["var_to_predict"]):
 
             # Create a DataFrame + populate Axis with time and space variables
-            model_prediction_df = pd.DataFrame(np.squeeze(model_prediction[:, :, :, variable_pred], axis=0)).T
+            model_prediction_df = pd.DataFrame(np.squeeze(model_prediction[:, :, :, i], axis=0)).T
 
             # De-Standardize with the loaded scaler from Model Training
-            if (self.model["target_scaler"][0] if isinstance(self.model["target_scaler"], list) else self.model["target_scaler"]) is not None:
-                for k, coord_scaler in enumerate(self.model["target_scaler"]):
-                    model_prediction_df.iloc[k, :] = pd.DataFrame(coord_scaler.inverse_transform(pd.DataFrame(model_prediction_df.iloc[k, :])))[0]
+            #if (self.model["target_scaler"][0] if isinstance(self.model["target_scaler"], list) else self.model["target_scaler"]) is not None:
+            #    for k, coord_scaler in enumerate(self.model["target_scaler"]):
+            #        model_prediction_df.iloc[k, :] = pd.DataFrame(coord_scaler.inverse_transform(pd.DataFrame(model_prediction_df.iloc[k, :])))[0]
 
             model_prediction_df = model_prediction_df.set_index(pd.Series(unique_spaceVar.unique()))
             model_prediction_df = model_prediction_df.set_axis(pd.Series(timeSpaceDataFrame["Date"].unique()), axis=1)
@@ -246,7 +246,7 @@ class ModelPrediction:
                 dfc = model_prediction_df[model_prediction_df.index == singleValue].T
                 dfc["singleCoord"] = singleValue
                 dfc = dfc.reset_index()
-                dfc = dfc.rename(columns={singleValue: self.model["var_to_predict"]}).rename(columns={"index": "date"})
+                dfc = dfc.rename(columns={singleValue: variable_pred}).rename(columns={"index": "date"})
                 dataPiled.append(dfc)
             dataPiled = pd.concat([df for df in dataPiled], axis=0).reset_index(drop=True)
 
@@ -255,13 +255,27 @@ class ModelPrediction:
             dataPiled = dataPiled.drop(columns=["singleCoord"])
             dataPiled = dataPiled.reset_index(drop=True)
             # Re-order
-            dataPiled = dataPiled[["date", "latitude", "longitude", self.model["var_to_predict"]]]
+            dataPiled = dataPiled[["date", "latitude", "longitude", variable_pred]]
             # Multiply for target division param to preserve the variable scale
-            dataPiled[self.model["var_to_predict"]] = dataPiled[self.model["var_to_predict"]] * target_division
+            dataPiled[variable_pred] = dataPiled[variable_pred] * target_division
             # Append
             prediction_dfs.append(dataPiled)
 
-        return prediction_dfs
+        # De-Standardize with the loaded scaler from Model Training
+        df_prediction = []
+        for df in prediction_dfs:
+            df = df.set_index(["date", "latitude", "longitude"])
+            df_prediction.append(df)
+        df_prediction = pd.concat([dt for dt in df_prediction], axis=1)
+        df_prediction = df_prediction.reset_index()
+        # De-Standardize
+        dfp = df_prediction.set_index(["latitude", "longitude"])
+        if (self.model["target_scaler"][0] if isinstance(self.model["target_scaler"], list) else self.model["target_scaler"]) is not None:
+            for k, coord_scaler in enumerate(self.model["target_scaler"]):
+                dfp[dfp.index == dfp.index[k]] = pd.DataFrame(coord_scaler.inverse_transform(dfp[self.model["var_to_predict"]][dfp.index == dfp.index[k]]))
+        dfp = dfp.reset_index()
+
+        return dfp
 
     # Function to predict with geospatial model
     def predictGeoSpatialWithTrainedModel (self, dataInDataFrameFormat, steps_ahead, frequency, date_column="index", target_division=1, lag_series=[]):
