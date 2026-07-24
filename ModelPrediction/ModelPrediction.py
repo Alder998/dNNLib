@@ -229,11 +229,6 @@ class ModelPrediction:
             # Create a DataFrame + populate Axis with time and space variables
             model_prediction_df = pd.DataFrame(np.squeeze(model_prediction[:, :, :, i], axis=0)).T
 
-            # De-Standardize with the loaded scaler from Model Training
-            #if (self.model["target_scaler"][0] if isinstance(self.model["target_scaler"], list) else self.model["target_scaler"]) is not None:
-            #    for k, coord_scaler in enumerate(self.model["target_scaler"]):
-            #        model_prediction_df.iloc[k, :] = pd.DataFrame(coord_scaler.inverse_transform(pd.DataFrame(model_prediction_df.iloc[k, :])))[0]
-
             model_prediction_df = model_prediction_df.set_index(pd.Series(unique_spaceVar.unique()))
             model_prediction_df = model_prediction_df.set_axis(pd.Series(timeSpaceDataFrame["Date"].unique()), axis=1)
             # Truncates in case of LESS time steps for prediction than time window
@@ -268,14 +263,16 @@ class ModelPrediction:
             df_prediction.append(df)
         df_prediction = pd.concat([dt for dt in df_prediction], axis=1)
         df_prediction = df_prediction.reset_index()
-        # De-Standardize
-        dfp = df_prediction.set_index(["latitude", "longitude"])
+        # De-Standardize (for de-standardization, a shape of (time steps, variables) is needed
+        df_prediction["unique_spaceVar"] = df_prediction["latitude"].astype(str) + "_" + df_prediction["longitude"].astype(str)
+
         if (self.model["target_scaler"][0] if isinstance(self.model["target_scaler"], list) else self.model["target_scaler"]) is not None:
             for k, coord_scaler in enumerate(self.model["target_scaler"]):
-                dfp[dfp.index == dfp.index[k]] = pd.DataFrame(coord_scaler.inverse_transform(dfp[self.model["var_to_predict"]][dfp.index == dfp.index[k]]))
-        dfp = dfp.reset_index()
+                df_prediction = df_prediction.copy()
+                df_prediction[self.model["var_to_predict"]][df_prediction["unique_spaceVar"] == unique_spaceVar[0]] = pd.DataFrame(coord_scaler.inverse_transform(df_prediction[self.model["var_to_predict"]][df_prediction["unique_spaceVar"] == unique_spaceVar[0]]))
+        df_prediction = df_prediction.drop(columns=["unique_spaceVar"])
 
-        return dfp
+        return df_prediction
 
     # Function to predict with geospatial model
     def predictGeoSpatialWithTrainedModel (self, dataInDataFrameFormat, steps_ahead, frequency, date_column="index", target_division=1, lag_series=[]):
