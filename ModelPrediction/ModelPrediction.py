@@ -268,8 +268,8 @@ class ModelPrediction:
 
         if (self.model["target_scaler"][0] if isinstance(self.model["target_scaler"], list) else self.model["target_scaler"]) is not None:
             for k, coord_scaler in enumerate(self.model["target_scaler"]):
-                df_prediction = df_prediction.copy()
-                df_prediction[self.model["var_to_predict"]][df_prediction["unique_spaceVar"] == unique_spaceVar[0]] = pd.DataFrame(coord_scaler.inverse_transform(df_prediction[self.model["var_to_predict"]][df_prediction["unique_spaceVar"] == unique_spaceVar[0]]))
+                mask = df_prediction["unique_spaceVar"] == unique_spaceVar[k]
+                df_prediction.loc[mask, self.model["var_to_predict"]] = (coord_scaler.inverse_transform(df_prediction.loc[mask, self.model["var_to_predict"]]))
         df_prediction = df_prediction.drop(columns=["unique_spaceVar"])
 
         return df_prediction
