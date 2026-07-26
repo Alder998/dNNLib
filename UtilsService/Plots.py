@@ -4,96 +4,112 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
+from datetime import datetime
 import matplotlib.colors as mcolors
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+from scipy.interpolate import LinearNDInterpolator, NearestNDInterpolator
 
 class Plots:
 
     def __init__(self):
         pass
 
+    # Utils-like functions to interpolate for plots
+
     def plotGeospacePredictionFixedGrid (self, dataInDataFrameFormat, prediction_dataset, variable, date_column="date",
-                                         colorScale="rainbow", savePath=None, space_variables=["latitude", "longitude"]):
+                                         colorScale="rainbow", savePath=None, space_variables=["latitude", "longitude"],
+                                         ncols=2, figsize=(12, 4)):
 
-        print("INFO - Generating Animation...")
-        prediction_dataset["date"] = pd.to_datetime(prediction_dataset["date"])
+        df = prediction_dataset.copy()
+        df[date_column] = pd.to_datetime(df[date_column])
+        dates = np.sort(df[date_column].unique())
 
-        # Mean
-        #mean_ts = prediction_dataset.groupby("date")[variable].mean().sort_index()
-        # first obs
-        static_line_graph_data_pred = prediction_dataset[(prediction_dataset["latitude"] == prediction_dataset["latitude"].unique()[0]) & (prediction_dataset["longitude"] == prediction_dataset["longitude"].unique()[0])].set_index("date")[variable].sort_index()
-        static_line_graph_data_input = dataInDataFrameFormat[(dataInDataFrameFormat[space_variables[0]] == dataInDataFrameFormat[space_variables[0]].unique()[0]) &
-                                                             (dataInDataFrameFormat[space_variables[1]] == dataInDataFrameFormat[space_variables[1]].unique()[0])].set_index(date_column)[variable].sort_index()
-        static_line_graph_data_input=static_line_graph_data_input[-96:]
-        # Set the grid
-        lats = np.sort(prediction_dataset["latitude"].unique())
-        lons = np.sort(prediction_dataset["longitude"].unique())
+        # -------------------------
+        # preparazione dati
+        # -------------------------
 
-        lat_to_i = {v: i for i, v in enumerate(lats)}
-        lon_to_j = {v: j for j, v in enumerate(lons)}
+        spatial = {}
+        ts = {}
+        for var in variable:
+            spatial[var] = (df.groupby(["date", space_variables[0], space_variables[1]])[var].mean().reset_index())
+            ts[var] = (df.groupby("date")[var].mean())
 
-        time_steps = sorted(prediction_dataset["date"].unique())
+        # -------------------------
+        # layout
+        # -------------------------
 
-        vmin = prediction_dataset[variable].min()
-        vmax = prediction_dataset[variable].max()
-        norm = mcolors.Normalize(vmin=vmin, vmax=vmax)
+        n = len(variable)
+        nrows = int(np.ceil(n / ncols))
 
-        # Figure with two graphs
-        fig, (ax_map, ax_ts) = plt.subplots(
-            2, 1, figsize=(8, 10),
-            gridspec_kw={"height_ratios": [3, 1]}
-        )
+        fig = plt.figure(figsize=(6 * ncols, 5 * nrows))
+        gs = fig.add_gridspec(nrows * 2,ncols,height_ratios=[3, 1] * nrows)
 
-        # Heatmap on fist graph
-        grid0 = np.full((len(lats), len(lons)), np.nan)
-        first = prediction_dataset[prediction_dataset["date"] == time_steps[0]]
+        maps = {}
+        cursors = {}
+        points = {}
+        scatters = {}
 
-        for _, r in first.iterrows():
-            grid0[lat_to_i[r["latitude"]], lon_to_j[r["longitude"]]] = r[variable]
+        for i, var in enumerate(variable):
+            r = (i // ncols) * 2
+            c = i % ncols
 
-        im = ax_map.imshow(
-            grid0,
-            origin="lower",
-            cmap=colorScale,
-            norm=norm,
-            extent=[lons.min(), lons.max(), lats.min(), lats.max()],
-            aspect="auto"
-        )
+            ax_map = fig.add_subplot(gs[r, c])
+            ax_ts = fig.add_subplot(gs[r + 1, c])
 
-        ax_map.set_axis_off()
-        cbar = plt.colorbar(im, ax=ax_map)
-        cbar.set_label(variable)
+            # Set the map graph
+            current = spatial[var][spatial[var].date == dates[0]]
+            grid = current.pivot(index=space_variables[0], columns=space_variables[1], values=var)
 
-        # Static Mean Graph with the last observations taken from the input dataset
-        ax_ts.plot(static_line_graph_data_input.index, static_line_graph_data_input.values, color="blue", label="observed")
-        ax_ts.plot(static_line_graph_data_pred.index, static_line_graph_data_pred.values, color="red", linestyle="dashed", label="predicted")
-        ax_ts.set_ylabel("first observation (to check the trend)")
-        ax_ts.set_xlabel("Date")
+            lat = grid.index.values
+            lon = grid.columns.values
+            Z = grid.values
+            vmin = spatial[var][var].min()
+            vmax = spatial[var][var].max()
+            mesh = ax_map.pcolormesh(lon, lat, Z, shading="auto", cmap=colorScale, vmin=vmin, vmax=vmax)
 
-        # Vertical line to follow Animation
-        time_line = ax_ts.axvline(time_steps[0], linestyle="--")
+            # Time series
+            ax_map.set_title(var)
+            ax_ts.plot(ts[var].index, ts[var].values, color="black")
+            cursor = ax_ts.axvline(dates[0], color="black", linestyle="dashed")
+            point, = ax_ts.plot( dates[0], ts[var].iloc[0], "o", color="black")
 
-        # Update function
+            maps[var] = ax_map
+            scatters[var] = mesh
+            cursors[var] = cursor
+            points[var] = point
+
+        # -------------------------
+        # animazione
+        # -------------------------
+
         def update(frame):
-            t = time_steps[frame]
-            subset = prediction_dataset[prediction_dataset["date"] == t]
-            grid = np.full((len(lats), len(lons)), np.nan)
-            for _, r in subset.iterrows():
-                grid[lat_to_i[r["latitude"]], lon_to_j[r["longitude"]]] = r[variable]
-            im.set_data(grid)
-            ax_map.set_title(f"{variable}: {t.strftime('%d/%m/%Y %H:%M')}")
 
-            # Update line graph
-            time_line.set_xdata([t])
+            date = dates[frame]
 
-            return im, time_line
+            for var in variable:
+                current = spatial[var][spatial[var].date == date]
 
-        ani = FuncAnimation(fig, update, frames=len(time_steps), interval=300)
+                scatters[var].set_offsets(np.c_[current.longitude,current.latitude])
+                scatters[var].set_array(current[var].values)
 
-        if savePath is not None:
-            ani.save(savePath, writer="pillow", fps=5)
-        # Show Plot
-        plt.legend()
+                maps[var].set_title(f"{var} - {datetime.strftime(pd.to_datetime(date), "%Y-%m-%d %H")}")
+                cursors[var].set_xdata([date, date])
+                points[var].set_data([date],[ts[var].loc[date]])
+
+            return list(scatters.values())
+
+        anim = FuncAnimation(
+            fig,
+            update,
+            frames=len(dates),
+            interval=200
+        )
+
+        plt.tight_layout()
         plt.show()
+
+        return anim
 
     # function to plot time series prediction
     def plotTimeSeriesPrediction(self, dataInDataFrameFormat, prediction_dataset, prediction_dataset_upper,
