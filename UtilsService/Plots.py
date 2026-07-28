@@ -17,9 +17,9 @@ class Plots:
 
     # Utils-like functions to interpolate for plots
 
-    def plotGeospacePredictionFixedGrid (self, dataInDataFrameFormat, prediction_dataset, variable, date_column="date",
-                                         colorScale="rainbow", savePath=None, space_variables=["latitude", "longitude"],
-                                         ncols=2, figsize=(12, 4)):
+    def plotGeospacePredictionFixedGrid (self, prediction_dataset, variable, date_column="date",
+                                         colorScale="rainbow", space_variables=["latitude", "longitude"],
+                                         ncols=2, geojson=None):
 
         df = prediction_dataset.copy()
         df[date_column] = pd.to_datetime(df[date_column])
