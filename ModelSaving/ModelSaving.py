@@ -2,6 +2,7 @@
 
 import os
 import json
+import pickle
 
 class ModelSaving:
 
@@ -9,7 +10,7 @@ class ModelSaving:
         self.model = model
         pass
 
-    def saveModelWeights(self, save_dir, model_name="model"):
+    def saveModelWeights(self, save_dir, model_name="model", adjacency_matrix=None):
 
         if save_dir is not None:
             custom_directory = save_dir + "\\" + model_name
@@ -32,8 +33,6 @@ class ModelSaving:
             model_info["loss_name"] = self.model["loss_name"]
             model_info["peak_aware_loss_params"] = self.model["peak_aware_loss_params"]
             model_info["mode"] = self.model["mode"]
-            if "adjacency_matrix" in model_info.keys():
-                model_info["adjacency_matrix"] = self.model["adjacency_matrix"].tolist()
             model_info["time_window"] = self.model["time_window"]
             model_info["params"] = self.model["params"]
             model_info["var_to_predict"] = self.model["var_to_predict"]
@@ -68,5 +67,10 @@ class ModelSaving:
 
             with open(custom_directory + "\\model_info.json", "w") as f:
                 json.dump(model_info, f)
+
+            # Save Adjacency Matrix
+            if adjacency_matrix is not None:
+                with open(custom_directory + "\\adjacency_matrix.pkl", "wb") as f:
+                    pickle.dump(adjacency_matrix, f)
 
             print("INFO - Model weights, structure, info saved correctly")

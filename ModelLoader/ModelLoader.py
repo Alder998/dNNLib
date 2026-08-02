@@ -1,11 +1,13 @@
 """Class to load model from saved using model weights"""
-import pandas as pd
 
+import pandas as pd
 from ModelArch import ModelArch as arch
 from ModelPrediction import ModelPrediction as pred
 from UtilsService import Plots as plts
 import json
 import numpy as np
+import pickle
+
 
 class ModelLoader:
 
@@ -67,11 +69,14 @@ class ModelLoader:
             model_info = json.load(f)
         with open(modelPath + "\\model_structure.json", "r") as f:
             model_structure = json.load(f)
+        # 0.1. Load Adjacency Matrix
+        with open(modelPath + "\\adjacency_matrix.pkl", "rb") as f:
+            adjacency_matrix = pickle.load(f)
 
         # 1. Re-Create the model
         if model_info["problem"] == "regression":
             modelObj = arch.ModelArch(modelStructure=model_structure).createRegressionModelArchitecture(mode=model_info["mode"],
-                                                                                                        adjacency_matrix=np.array(model_info["adjacency_matrix"]),
+                                                                                                        adjacency_matrix=adjacency_matrix,
                                                                                                         input_shape=model_info["input_shape"],
                                                                                                         loss=model_info["loss_name"],
                                                                                                         peak_aware_loss_params=model_info["peak_aware_loss_params"])

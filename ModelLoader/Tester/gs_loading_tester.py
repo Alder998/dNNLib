@@ -1,9 +1,9 @@
 """tester for geo-spatial model from loaded"""
 
 from ModelLoader import ModelLoader as load
-from Dataset import Dataset as data
+import pandas as pd
 
-weatherData = data.Dataset().loadWeatherDataset(size="1m")
+weatherData = pd.read_csv(r"C:\Users\alder\Downloads\weather_liguria_1y_100points.csv")
 
 load.ModelLoader().predictGeoSpaceWithLoadedModel(modelPath="D:\\PythonProjects-Storage\\dNNLib\\Tester\\stored_models\\geospace_GRU_model",
                                                   data=weatherData,
