@@ -79,6 +79,7 @@ class ModelLoader:
                                                                                                         adjacency_matrix=adjacency_matrix,
                                                                                                         input_shape=model_info["input_shape"],
                                                                                                         loss=model_info["loss_name"],
+                                                                                                        target_variables=len(model_info["var_to_predict"]),
                                                                                                         peak_aware_loss_params=model_info["peak_aware_loss_params"])
         else:
             raise Exception("Problem " + str(model_info["problem"]) + " not implemented!")
