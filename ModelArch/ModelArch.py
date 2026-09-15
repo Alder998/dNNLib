@@ -342,6 +342,8 @@ class ModelArch:
                                                    delta=peak_aware_loss_params["delta"],
                                                    peak_threshold=peak_aware_loss_params["peak_threshold"]
                                                    )
+        elif loss == "Huber":
+            loss = tf.keras.losses.Huber()
         else:
             raise Exception("Loss " + str(loss) + " not recognised!")
 

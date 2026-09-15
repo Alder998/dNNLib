@@ -25,7 +25,7 @@ class GeoSpaceModelWrapper:
     def trainPredictAndSaveGeospaceModel (self, data, prediction_steps_ahead, epochs, shuffle=True, test_size=0.30, validation_split=0.2,
                                           sigma_adjacency=None, standardize=False, split_method="time-series",
                                           seasonal_splits=12, batch_size=32, save_dir=None, model_save_name="model", plot=False,
-                                          plot_save_dir=None, target_division=1, date_column_format="%Y-%m-%d %H:%M:%S", scaler="std"):
+                                          plot_save_dir=None, target_division=1, date_column_format="%Y-%m-%d %H:%M:%S", scaler="std", loss="MSE"):
 
         # 0.0. Process the data
         data = dt.Dataset().processDatasetForGeoSpaceTimeSeries(dataInDataFrameFormat=data,
@@ -48,7 +48,8 @@ class GeoSpaceModelWrapper:
                                                                                                      input_shape=(self.time_window,
                                                                                                                  adjacency_matrix.shape[0],
                                                                                                                  len(self.feature_variables) + len(self.lags)*len(self.target_variables)),
-                                                                                                     target_variables=len(self.target_variables))
+                                                                                                     target_variables=len(self.target_variables),
+                                                                                                     loss=loss)
 
         # 2. Train Model
         trained_model = train.ModelTraining(model=model).trainGeospatialModel(dataInDataFrameFormat=data,
