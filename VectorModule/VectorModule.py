@@ -4,6 +4,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import MinMaxScaler
+from sklearn.feature_selection import mutual_info_regression
 import pandas as pd
 
 class VectorModule:
@@ -248,21 +249,48 @@ class VectorModule:
         space_col = "_".join(space_variables) if len(space_variables) > 1 else space_variables[0]
         dataInDataFrameFormat[space_col] = dataInDataFrameFormat[space_variables].astype(str).agg("_".join, axis=1) if len(space_variables) > 1 else dataInDataFrameFormat[space_variables[0]]
 
-        # 1. Group data by mean
-        data_grouped = dataInDataFrameFormat[[space_col] + target_variables].groupby(space_col, as_index=False).mean()
-        X = data_grouped[target_variables].to_numpy(dtype=float)
-        diff = X[:, None, :] - X[None, :, :]  # (N,N,T)
-        dist2 = np.sum(diff ** 2, axis=-1)  # (N,N)
-        if sigma is None:
-            sigma = np.std(X)
-        A = np.exp(-dist2 / (sigma ** 2))
+        # 0.1. Define nodes
+        spaces = dataInDataFrameFormat[space_col].unique()
 
-        # Fill diagonal with 0
-        A = self.normalize_adjacency(A)
+        # 0.2. Sort by date
+        df = dataInDataFrameFormat.sort_values("date")
+
+        # 0.3. Create a Matrix for each one of the target variable
+        mi_matrices = {}
+        print("ADJACENCY MATRIX - Creating Adjacency Matrices...")
+        for variable in target_variables:
+            # T x S
+            matrix = (df.pivot_table(index="date", columns=space_col, values=variable,aggfunc="mean").reindex(columns=spaces))
+            S = len(spaces)
+            A = np.zeros((S, S))
+
+            for i in range(S):
+                for j in range(i + 1, S):
+                    x = matrix.iloc[:, i].values
+                    y = matrix.iloc[:, j].values
+                    # Remove NaN
+                    mask = np.isfinite(x) & np.isfinite(y)
+                    if mask.sum() < 2:
+                        mi = 0.0
+                    else:
+                        mi = mutual_info_regression(x[mask].reshape(-1, 1), y[mask], random_state=1893)[0]
+                    A[i, j] = mi
+                    A[j, i] = mi
+            # populate matrix
+            mi_matrices[variable] = A
+
+        # 1. Normalize marix to uniform the scales
+        normalized_matrices = []
+        for variable, M in mi_matrices.items():
+            M = M.copy()
+            max_value = M.max()
+            if max_value > 0:
+                M = M / max_value
+            normalized_matrices.append(M)
+
+        # 2. What you really need is the aggregation of each one of the variable
+        A = np.mean(normalized_matrices, axis=0)
         np.fill_diagonal(A, 0)
-
-        # Show the density of adjacency matrix
-        print("ADJACENCY MATRIX - Density: " + str(round((np.count_nonzero(A) / A.size) * 100, 2)) + " %")
 
         return A
 
