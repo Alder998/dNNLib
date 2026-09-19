@@ -23,7 +23,7 @@ class GeoSpaceModelWrapper:
         pass
 
     def trainPredictAndSaveGeospaceModel (self, data, prediction_steps_ahead, epochs, shuffle=True, test_size=0.30, validation_split=0.2,
-                                          sigma_adjacency=None, standardize=False, split_method="time-series",
+                                          standardize=False, split_method="time-series",
                                           seasonal_splits=12, batch_size=32, save_dir=None, model_save_name="model", plot=False,
                                           plot_save_dir=None, target_division=1, date_column_format="%Y-%m-%d %H:%M:%S", scaler="std", loss="MSE"):
 
@@ -40,7 +40,7 @@ class GeoSpaceModelWrapper:
         adjacency_matrix = vector.VectorModule(modelStructure=self.modelStructure).createAdjacencyMatrixFromDataFrame(dataInDataFrameFormat=data,
                                                                                                                       target_variables=self.target_variables,
                                                                                                                       space_variables=self.space_variables,
-                                                                                                                      sigma=sigma_adjacency)
+                                                                                                                      date_column=self.date_column)
 
         # 1. Create Model
         model = arch.ModelArch(modelStructure=self.modelStructure).createRegressionModelArchitecture(mode="functional",

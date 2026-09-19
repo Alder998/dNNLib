@@ -243,53 +243,66 @@ class VectorModule:
             return features_array, target_array, feature_scaler, target_scaler
 
     # Utils-like function to create the Adjacency Matrix from a DataFrame
-    def createAdjacencyMatrixFromDataFrame (self, dataInDataFrameFormat, space_variables, target_variables, sigma=None):
+    def createAdjacencyMatrixFromDataFrame (self, dataInDataFrameFormat, space_variables, target_variables, date_column, radius=2):
 
         # 0. Very primitive Adjacency Matrix - mean of the target variable difference (standardized)
         space_col = "_".join(space_variables) if len(space_variables) > 1 else space_variables[0]
         dataInDataFrameFormat[space_col] = dataInDataFrameFormat[space_variables].astype(str).agg("_".join, axis=1) if len(space_variables) > 1 else dataInDataFrameFormat[space_variables[0]]
 
-        # 0.1. Define nodes
+        # 1. Isolate the space points
+        n_lat = len(dataInDataFrameFormat[space_variables[0]].unique())
+        n_lon = len(dataInDataFrameFormat[space_variables[1]].unique())
+        S = n_lat * n_lon
+        radius = radius
+
+        # 2. Get the candidate pairs for each one of the coordinates
+        candidate_pairs = []
+        for r in range(n_lat):
+            for c in range(n_lon):
+                i = r * n_lon + c
+                for dr in range(-radius, radius + 1):
+                    for dc in range(-radius, radius + 1):
+                        if dr == 0 and dc == 0:
+                            continue
+                        rr = r + dr
+                        cc = c + dc
+                        if 0 <= rr < n_lat and 0 <= cc < n_lon:
+                            j = rr * n_lon + cc
+                            if i < j:
+                                candidate_pairs.append((i, j))
+
+        # 3. Build the climate Matrix (for each one of the variable)
         spaces = dataInDataFrameFormat[space_col].unique()
-
-        # 0.2. Sort by date
-        df = dataInDataFrameFormat.sort_values("date")
-
-        # 0.3. Create a Matrix for each one of the target variable
-        mi_matrices = {}
-        print("ADJACENCY MATRIX - Creating Adjacency Matrices...")
+        feature_matrices = {}
         for variable in target_variables:
-            # T x S
-            matrix = (df.pivot_table(index="date", columns=space_col, values=variable,aggfunc="mean").reindex(columns=spaces))
-            S = len(spaces)
-            A = np.zeros((S, S))
+            M = (dataInDataFrameFormat.pivot(index=date_column, columns=space_col, values=variable).reindex(columns=spaces))
+            feature_matrices[variable] = M.to_numpy(dtype=np.float32)
 
-            for i in range(S):
-                for j in range(i + 1, S):
-                    x = matrix.iloc[:, i].values
-                    y = matrix.iloc[:, j].values
-                    # Remove NaN
-                    mask = np.isfinite(x) & np.isfinite(y)
-                    if mask.sum() < 2:
-                        mi = 0.0
-                    else:
-                        mi = mutual_info_regression(x[mask].reshape(-1, 1), y[mask], random_state=1893)[0]
-                    A[i, j] = mi
-                    A[j, i] = mi
-            # populate matrix
-            mi_matrices[variable] = A
+        # 4. Launch the mutual Information algorithm
+        A_features = {}
+        for variable, X in feature_matrices.items():
+            A = np.zeros((S, S), dtype=np.float32)
+            for i, j in candidate_pairs:
+                x = X[:, i]
+                y = X[:, j]
+                mask = np.isfinite(x) & np.isfinite(y)
+                if mask.sum() < 100:
+                    continue
+                mi = mutual_info_regression(x[mask].reshape(-1, 1), y[mask], random_state=42)[0]
+                A[i, j] = mi
+                A[j, i] = mi
+            A_features[variable] = A
 
-        # 1. Normalize marix to uniform the scales
-        normalized_matrices = []
-        for variable, M in mi_matrices.items():
-            M = M.copy()
-            max_value = M.max()
+        # 5. Normalize the values to uniform the scale of the variables
+        normalized = []
+        for variable in target_variables:
+            A = A_features[variable]
+            max_value = A.max()
             if max_value > 0:
-                M = M / max_value
-            normalized_matrices.append(M)
-
-        # 2. What you really need is the aggregation of each one of the variable
-        A = np.mean(normalized_matrices, axis=0)
+                A = A / max_value
+            normalized.append(A)
+        # Mean of the normalized matrix
+        A = np.mean(normalized, axis=0)
         np.fill_diagonal(A, 0)
 
         return A
