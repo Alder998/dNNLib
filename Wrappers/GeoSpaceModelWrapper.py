@@ -24,7 +24,7 @@ class GeoSpaceModelWrapper:
 
     def trainPredictAndSaveGeospaceModel (self, data, prediction_steps_ahead, epochs, shuffle=True, test_size=0.30, validation_split=0.2,
                                           standardize=False, split_method="time-series",
-                                          seasonal_splits=12, batch_size=32, save_dir=None, model_save_name="model", plot=False,
+                                          seasonal_splits=12, batch_size=32, save_dir=None, model_save_name="model", plot=False, geojson=None,
                                           plot_save_dir=None, target_division=1, date_column_format="%Y-%m-%d %H:%M:%S", scaler="std", loss="MSE"):
 
         # 0.0. Process the data
@@ -90,4 +90,5 @@ class GeoSpaceModelWrapper:
                                                           variable=self.target_variables,
                                                           date_column=self.date_column,
                                                           space_variables=self.space_variables,
-                                                          colorScale="rainbow")
+                                                          colorScale="rainbow",
+                                                          geojson_path=geojson)

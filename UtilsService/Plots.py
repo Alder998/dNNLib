@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from datetime import datetime
+import geopandas as gpd
 import matplotlib.colors as mcolors
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
@@ -19,7 +20,7 @@ class Plots:
 
     def plotGeospacePredictionFixedGrid (self, prediction_dataset, variable, date_column="date",
                                          colorScale="rainbow", space_variables=["latitude", "longitude"],
-                                         ncols=2, geojson=None):
+                                         ncols=2, geojson_path=None):
 
         df = prediction_dataset.copy()
         df[date_column] = pd.to_datetime(df[date_column])
@@ -67,6 +68,11 @@ class Plots:
             vmin = spatial[var][var].min()
             vmax = spatial[var][var].max()
             mesh = ax_map.pcolormesh(lon, lat, Z, shading="auto", cmap=colorScale, vmin=vmin, vmax=vmax)
+            # Add Geo JSON Contour, if required
+            if geojson_path is not None:
+                geojson = gpd.read_file(geojson_path)
+                geojson = geojson.to_crs("EPSG:4326")
+                geojson.plot(ax=ax_map, facecolor="none", edgecolor="black", linewidth=1.5, zorder=10)
 
             # Time series
             ax_map.set_title(var)
