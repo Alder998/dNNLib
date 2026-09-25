@@ -246,6 +246,7 @@ class VectorModule:
     def createAdjacencyMatrixFromDataFrame (self, dataInDataFrameFormat, space_variables, target_variables, date_column, radius=2):
 
         # 0. Very primitive Adjacency Matrix - mean of the target variable difference (standardized)
+        print("ADJACENCY MATRIX - Creating the mutual-information adjacency matrix (radius: " + str(radius) + ")...")
         space_col = "_".join(space_variables) if len(space_variables) > 1 else space_variables[0]
         dataInDataFrameFormat[space_col] = dataInDataFrameFormat[space_variables].astype(str).agg("_".join, axis=1) if len(space_variables) > 1 else dataInDataFrameFormat[space_variables[0]]
 
