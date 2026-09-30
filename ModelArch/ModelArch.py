@@ -197,6 +197,30 @@ class ModelArch:
         else:
             raise Exception("Mode " + str(mode) + " not recognised!")
 
+    # Function to add a GRU Layer (time series, usually faster than LSTM)
+    def createGRULayer (self, model=None, modelBuilder=None, mode="sequential"):
+
+        # 1. Iterate for the GConv layers specified by the user
+        if 'GRU' in self.modelStructure.keys():
+            for l in range(len(self.modelStructure['GRU']["layers"])):
+                # 1.1. extract the LSTM units and the nodes for each one of the layer
+                unitsGRU = self.modelStructure['GRU']["layers"][l]
+                gru_layer = tf.keras.layers.LSTM(unitsGRU,
+                                                activation=self.modelStructure['GRU']["activation"],
+                                                return_sequences=True,
+                                                dropout=self.modelStructure['GRU']["dropout"])
+                if mode == "functional":
+                    modelBuilder = gru_layer(modelBuilder)
+                elif mode == "sequential":
+                    model.add(gru_layer)
+
+        if mode == "functional":
+            return modelBuilder
+        elif mode == "sequential":
+            return model
+        else:
+            raise Exception("Mode " + str(mode) + " not recognised!")
+
     # Generalized method to create a Model with custom layers
     def createModelArchitecture(self, mode="sequential", adjacency_matrix=None, input_shape=(None, None, None, None)):
 
@@ -300,6 +324,9 @@ class ModelArch:
 
             if "FF" in self.modelStructure.keys():
                 modelBuilder = self.createFeedForwardLayer(modelBuilder=modelBuilder, mode=mode)
+
+            if "GRU" in self.modelStructure.keys():
+                modelBuilder = self.createGRULayer(modelBuilder=modelBuilder, mode=mode)
 
             return modelBuilder, inputs
 

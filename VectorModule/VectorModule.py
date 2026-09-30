@@ -331,7 +331,7 @@ class VectorModule:
         # Process according model Structure
         if "FF" in self.modelStructure.keys():
             features_train, features_test, target_train, target_test, feature_scaler, target_scaler = self.processDataForFF(dataInDataFrameFormat, feature_variables, target_variables, test_size, standardize, split_method, target_division=target_division, lag_series=lag_series, scaler=scaler)
-        if "LSTM" in self.modelStructure.keys():
+        if ("LSTM" in self.modelStructure.keys()) | ("GRU" in self.modelStructure.keys()):
             features_train, features_test, target_train, target_test, feature_scaler, target_scaler = self.processDataForRecurrentNet(dataInDataFrameFormat, feature_variables, target_variables, test_size, time_window, standardize, split_method, seasonal_splits, prediction=prediction, target_division=target_division, lag_series=lag_series, scaler=scaler)
         if "Conv2D" in self.modelStructure.keys():
             features_train, features_test, target_train, target_test, feature_scaler, target_scaler = self.processDataForRecurrentNet(dataInDataFrameFormat, feature_variables, target_variables, test_size, time_window, standardize, split_method, seasonal_splits, prediction=prediction, target_division=target_division, lag_series=lag_series, scaler=scaler)
