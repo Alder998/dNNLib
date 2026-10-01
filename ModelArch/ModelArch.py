@@ -371,6 +371,8 @@ class ModelArch:
                                                    )
         elif loss == "Huber":
             loss = tf.keras.losses.Huber()
+        elif loss == "MAPE":
+            loss = tf.keras.losses.MeanAbsolutePercentageError()
         else:
             raise Exception("Loss " + str(loss) + " not recognised!")
 
