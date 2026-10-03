@@ -308,14 +308,6 @@ class VectorModule:
 
         return A
 
-    # Function to standardize adjacency Matrix
-    def normalize_adjacency(self, A):
-        A = A + np.eye(A.shape[0])
-        D = np.diag(np.sum(A, axis=1))
-        D_inv_sqrt = np.linalg.inv(np.sqrt(D))
-        A_hat = D_inv_sqrt @ A @ D_inv_sqrt
-        return A_hat.astype("float32")
-
     # Main function for data processing
     def processDataFrame (self, dataInDataFrameFormat, feature_variables, target_variables, test_size, time_window, standardize=False,
                           split_method="random", seasonal_splits=10, timeSpace=False, space_variables=None, prediction=False, target_division=1, lag_series=[], scaler="std"):
